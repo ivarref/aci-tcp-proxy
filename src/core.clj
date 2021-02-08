@@ -11,16 +11,23 @@
   (binding [*out* *err*]
     (println s)))
 
+(def running
+  (atom true))
+
+(def pipe-state
+  (volatile! nil))
+
+(defn handle-pipe! []
+  (Signal/handle
+    (Signal. "PIPE")
+    (reify SignalHandler
+      (handle [_ _]
+         (vreset! pipe-state :PIPE)))))
+
 (defn -main [& args]
+  (handle-pipe!)
   (debug "starting proxy ...")
-  (let [running (atom true)
-        pipe-state (volatile! nil)
-        _pipe-signal-handler (Signal/handle
-                               (Signal. "PIPE")
-                               (reify SignalHandler
-                                 (handle [_ _]
-                                   (vreset! pipe-state :PIPE))))
-        in (BufferedInputStream. System/in)
+  (let [in (BufferedInputStream. System/in)
         out (BufferedOutputStream. System/out)
         sock (socket "127.0.0.1" 7777)
         to-socket  (-> sock
@@ -39,31 +46,35 @@
 
     (future
       (debug "reading from System/in ...")
-      (let [buf (byte-array 1024)]
-        (while @running
-          (let [num-bytes (.read in buf)]
-            ;(debug (str "got " num-bytes " bytes from stdin"))
-            (if (not= -1 num-bytes)
-              (do
-                (.write to-socket buf 0 num-bytes)
-                (.flush to-socket))
-              (do
-                (debug "System/in closed!")
-                (reset! running false)
-                (close! sock)
-                (close! from-socket)))))))
+      (try
+        (let [buf (byte-array 1024)]
+          (while @running
+            (let [num-bytes (.read in buf)]
+              (if (not= -1 num-bytes)
+                (do
+                  (.write to-socket buf 0 num-bytes)
+                  (.flush to-socket))
+                (do
+                  (debug "System/in closed!")
+                  (reset! running false)
+                  (close! sock)
+                  (close! from-socket))))))
+        (catch Exception e
+          (debug (str "error during reading System/in: " (ex-message e))))))
 
     (future
       (debug "reading from socket ...")
-      (let [buf (byte-array 1024)]
-        (while @running
-          (let [num-bytes (.read from-socket buf)]
-            ;(debug (str "got " num-bytes " bytes from socket"))
-            (if (not= -1 num-bytes)
-              (do
-                (.write System/out buf 0 num-bytes)
-                (.flush System/out))
-              (do
-                (debug "reading from socket closed!")
-                (reset! running false)
-                (close! in)))))))))
+      (try
+        (let [buf (byte-array 1024)]
+          (while @running
+            (let [num-bytes (.read from-socket buf)]
+              (if (not= -1 num-bytes)
+                (do
+                  (.write out buf 0 num-bytes)
+                  (.flush out))
+                (do
+                  (debug "reading from socket closed!")
+                  (reset! running false)
+                  (close! in))))))
+        (catch Exception e
+          (debug (str "error during reading from socket: " (ex-message e))))))))
