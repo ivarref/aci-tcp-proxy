@@ -11,9 +11,6 @@
   (binding [*out* *err*]
     (println s)))
 
-(def running
-  (atom true))
-
 (def pipe-state
   (volatile! nil))
 
