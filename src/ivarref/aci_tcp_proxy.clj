@@ -1,4 +1,4 @@
-(ns core
+(ns ivarref.aci-tcp-proxy
   (:gen-class)
   (:import (java.io OutputStream InputStream BufferedInputStream BufferedOutputStream Closeable)
            (java.net Socket)

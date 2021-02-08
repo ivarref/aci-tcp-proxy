@@ -1,5 +1,7 @@
 #!/bin/bash
 
+rm -v ./proxy
+
 set -ex
 
 clojure -M:native-image

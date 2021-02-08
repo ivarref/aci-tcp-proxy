@@ -1,7 +1,7 @@
 {:deps    {org.clojure/clojure {:mvn/version "1.10.2"}}
  :paths   ["src"]
  :aliases {:native-image
-           {:main-opts ["-m clj.native-image core"
+           {:main-opts ["-m clj.native-image ivarref.aci-tcp-proxy"
                         "--initialize-at-build-time"
                         "-H:+ReportExceptionStackTraces"
                         ;; optional native image name override
