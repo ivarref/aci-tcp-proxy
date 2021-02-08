@@ -95,3 +95,6 @@
       (Thread/sleep 1000)
       (close! sock)
       (shutdown-agents))))
+
+(defn proxy! []
+  (-main))
