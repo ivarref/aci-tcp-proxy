@@ -30,6 +30,6 @@ echo "proxy done!"
 
 kill $(cat ./.echo-server.pid) || true
 
-diff proxy out.bin
+diff -qs proxy out.bin
 
 cp -fv ./proxy resources/ivarref/aci-tcp-proxy/proxy
