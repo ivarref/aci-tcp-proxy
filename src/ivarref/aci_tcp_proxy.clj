@@ -1,7 +1,7 @@
 (ns ivarref.aci-tcp-proxy
   (:gen-class)
   (:require [clojure.java.io :as io])
-  (:import (java.io OutputStream InputStream BufferedInputStream BufferedOutputStream Closeable)
+  (:import (java.io OutputStream InputStream BufferedInputStream BufferedOutputStream Closeable File)
            (java.net Socket)
            (sun.misc Signal SignalHandler)))
 
@@ -9,7 +9,9 @@
   ([] (install! nil))
   ([dest-path]
    (with-open [in (io/input-stream (io/resource "ivarref/aci-tcp-proxy/proxy"))]
-     (io/copy in (io/file (str dest-path "/proxy"))))))
+     (let [^File dest (io/file (str dest-path "/proxy"))]
+       (io/copy in dest)
+       (.setExecutable dest true)))))
 
 (defn ^Socket socket [^String host ^long port]
   (Socket. host port))
