@@ -96,5 +96,5 @@
       (close! sock)
       (shutdown-agents))))
 
-(defn proxy! []
+(defn proxy! [_opts]
   (-main))
