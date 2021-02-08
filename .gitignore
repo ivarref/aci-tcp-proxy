@@ -5,3 +5,5 @@ proxy
 .cpcache/
 classes/
 out.bin
+target/
+resources/ivarref/aci-tcp-proxy/proxy

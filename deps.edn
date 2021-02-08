@@ -1,13 +1,22 @@
 {:deps    {org.clojure/clojure {:mvn/version "1.10.2"}}
- :paths   ["src"]
- :aliases {:native-image
-           {:main-opts ["-m clj.native-image ivarref.aci-tcp-proxy"
-                        "--initialize-at-build-time"
-                        "-H:+ReportExceptionStackTraces"
-                        ;; optional native image name override
-                        "-H:Name=proxy"]
-            :jvm-opts  ["-Dclojure.compiler.direct-linking=true"]
-            :extra-deps
-                       {clj.native-image/clj.native-image
-                        {:git/url "https://github.com/taylorwood/clj.native-image.git"
-                         :sha     "f3e40672d5c543b80a2019c1f07b2d3fe785962c"}}}}}
+
+ :paths   ["src" "resources"]
+
+ :aliases {:native-image {:main-opts ["-m clj.native-image ivarref.aci-tcp-proxy"
+                                      "--initialize-at-build-time"
+                                      "-H:+ReportExceptionStackTraces"
+                                      ;; optional native image name override
+                                      "-H:Name=proxy"]
+                          :jvm-opts  ["-Dclojure.compiler.direct-linking=true"]
+                          :extra-deps
+                                     {clj.native-image/clj.native-image
+                                      {:git/url "https://github.com/taylorwood/clj.native-image.git"
+                                       :sha     "f3e40672d5c543b80a2019c1f07b2d3fe785962c"}}}
+
+           :jar          {:extra-deps {pack/pack.alpha {:git/url "https://github.com/juxt/pack.alpha.git"
+                                                        :sha     "0e8731e0f24db05b74769e219051b0e92b50624a"}}
+                          :main-opts  ["-m" "mach.pack.alpha.skinny" "--no-libs" "--project-path" "target/aci-tcp-proxy.jar"]}
+
+           :deploy       {:extra-deps {slipset/deps-deploy {:mvn/version "0.1.3"}}
+                          :main-opts  ["-m" "deps-deploy.deps-deploy" "deploy"
+                                       "target/aci-tcp-proxy.jar" "true"]}}}
