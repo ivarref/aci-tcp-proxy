@@ -45,9 +45,8 @@
               (.write to-socket buf 0 num-bytes)
               (.flush to-socket))
             (do
-              (debug "System/in closed!")
-              (reset! run? false))))))
-      ;(debug "done reading from System/in"))
+              (reset! run? false)))))
+      (debug "done reading from System/in"))
     (catch Exception e
       (debug (str "error during reading System/in: " (ex-message e))))))
 
@@ -86,5 +85,5 @@
     (let [read-stdin (future (read-stdin in to-socket))
           read-sock (future (read-socket out from-socket))]
       @read-stdin
-      (println "done reading...")
+      (close! to-socket)
       #_(shutdown-agents))))
