@@ -10,8 +10,4 @@ clojure -M:native-image
 
 diff proxy out.bin
 
-mkdir -p resources/ivarref/aci-tcp-proxy
-
 cp -fv ./proxy resources/ivarref/aci-tcp-proxy/proxy
-
-clojure -M:jar
