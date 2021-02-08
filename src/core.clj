@@ -85,5 +85,7 @@
     (let [read-stdin (future (read-stdin in to-socket))
           read-sock (future (read-socket out from-socket))]
       @read-stdin
-      (close! to-socket)
-      #_(shutdown-agents))))
+      (println "shutting down ...")
+      (Thread/sleep 3000)
+      (close! sock)
+      (shutdown-agents))))
