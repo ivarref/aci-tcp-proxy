@@ -4,7 +4,7 @@
   <packaging>jar</packaging>
   <groupId>ivarref</groupId>
   <artifactId>aci-tcp-proxy</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.18</version>
   <name>aci-tcp-proxy</name>
   <dependencies>
     <dependency>
@@ -25,7 +25,7 @@
   <scm>
     <connection>scm:git:git://github.com/ivarref/aci-tcp-proxy.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/ivarref/aci-tcp-proxy.git</developerConnection>
-    <tag>v0.3.50</tag>
+    <tag>v0.1.18</tag>
     <url>https://github.com/ivarref/aci-tcp-proxy</url>
   </scm>
 </project>
