@@ -22,4 +22,10 @@
       <url>https://repo.clojars.org/</url>
     </repository>
   </repositories>
+  <scm>
+    <connection>scm:git:git://github.com/ivarref/aci-tcp-proxy.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/ivarref/aci-tcp-proxy.git</developerConnection>
+    <tag>v0.3.50</tag>
+    <url>https://github.com/ivarref/aci-tcp-proxy</url>
+  </scm>
 </project>
