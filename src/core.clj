@@ -57,8 +57,8 @@
                                    (.flush to-socket))
                                  (do
                                    (debug "System/in closed!")
-                                   (reset! running false)
-                                   (close! to-socket))))))
+                                   (reset! running false)))))
+                           (debug "done reading from System/in"))
                          (catch Exception e
                            (debug (str "error during reading System/in: " (ex-message e))))))
 
@@ -75,7 +75,8 @@
                                 (do
                                   (debug "reading from socket closed!")
                                   (reset! running false)
-                                  (close! in))))))
+                                  (close! in)))))
+                          (debug "done reading from socket"))
                         (catch Exception e
                           (debug (str "error during reading from socket: " (ex-message e))))))]
       (shutdown-agents))))
