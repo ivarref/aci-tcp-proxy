@@ -86,6 +86,6 @@
           read-sock (future (read-socket out from-socket))]
       @read-stdin
       (debug "shutting down ...")
-      (Thread/sleep 3000)
+      (Thread/sleep 1000)
       (close! sock)
       (shutdown-agents))))
