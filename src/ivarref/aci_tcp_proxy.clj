@@ -1,15 +1,22 @@
 (ns ivarref.aci-tcp-proxy
   (:gen-class)
+  (:require [clojure.java.io :as io])
   (:import (java.io OutputStream InputStream BufferedInputStream BufferedOutputStream Closeable)
            (java.net Socket)
            (sun.misc Signal SignalHandler)))
+
+(defn install!
+  ([] (install! nil))
+  ([dest-path]
+   (with-open [in (io/input-stream (io/resource "ivarref/aci-tcp-proxy/proxy"))]
+     (io/copy in (io/file (str dest-path "/proxy"))))))
 
 (defn ^Socket socket [^String host ^long port]
   (Socket. host port))
 
 (defn debug [^String s]
   (binding [*out* *err*]
-    (println s)))
+    #_(println s)))
 
 (def pipe-state
   (volatile! nil))
