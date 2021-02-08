@@ -1,7 +1,8 @@
 (ns core
   (:gen-class)
   (:import (java.io OutputStream InputStream BufferedInputStream BufferedOutputStream Closeable)
-           (java.net Socket)))
+           (java.net Socket)
+           (sun.misc Signal SignalHandler)))
 
 (defn ^Socket socket [^String host ^long port]
   (Socket. host port))
@@ -13,6 +14,12 @@
 (defn -main [& args]
   (debug "starting proxy ...")
   (let [running (atom true)
+        pipe-state (volatile! nil)
+        _pipe-signal-handler (Signal/handle
+                               (Signal. "PIPE")
+                               (reify SignalHandler
+                                 (handle [_ _]
+                                   (vreset! pipe-state :PIPE))))
         in (BufferedInputStream. System/in)
         out (BufferedOutputStream. System/out)
         sock (socket "127.0.0.1" 7777)
@@ -38,7 +45,8 @@
             ;(debug (str "got " num-bytes " bytes from stdin"))
             (if (not= -1 num-bytes)
               (do
-                (.write to-socket buf 0 num-bytes))
+                (.write to-socket buf 0 num-bytes)
+                (.flush to-socket))
               (do
                 (debug "System/in closed!")
                 (reset! running false)
@@ -53,7 +61,8 @@
             ;(debug (str "got " num-bytes " bytes from socket"))
             (if (not= -1 num-bytes)
               (do
-                (.write System/out buf 0 num-bytes))
+                (.write System/out buf 0 num-bytes)
+                (.flush System/out))
               (do
                 (debug "reading from socket closed!")
                 (reset! running false)
