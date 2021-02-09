@@ -7,3 +7,7 @@ classes/
 out.bin
 target/
 resources/ivarref/aci-tcp-proxy/proxy
+*.pom.asc
+*.pid
+Proxy
+out.txt
