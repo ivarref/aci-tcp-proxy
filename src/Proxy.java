@@ -54,19 +54,20 @@ public class Proxy {
         final Base64.Decoder decoder = Base64.getMimeDecoder();
         while (running.get()) {
             String line = in.readLine();
-            if (line != null) {
-                sb.append(line);
-                if (line.trim().equals("")) {
-                    byte[] byteChunk = decoder.decode(sb.toString());
-                    toSocket.write(byteChunk);
-                    toSocket.flush();
-                    sb = new StringBuilder();
-                } else {
-                    sb.append("\n");
-                }
-            } else {
+            if (line == null || line.trim().equals("")) {
+                byte[] byteChunk = decoder.decode(sb.toString());
+                System.err.println("pushing " + byteChunk.length + " bytes");
+                toSocket.write(byteChunk);
+                toSocket.flush();
+                sb = new StringBuilder();
+            }
+
+            if (line == null) {
                 System.err.println("stdin closed");
                 running.set(false);
+            } else {
+                sb.append(line);
+                sb.append("\n");
             }
         }
         System.err.println("stdin loop exiting");
