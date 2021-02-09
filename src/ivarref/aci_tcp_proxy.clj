@@ -2,8 +2,7 @@
   (:gen-class)
   (:require [clojure.java.io :as io])
   (:import (java.io OutputStream InputStream BufferedInputStream BufferedOutputStream Closeable File)
-           (java.net Socket)
-           (sun.misc Signal SignalHandler)))
+           (java.net Socket)))
 
 (defn install!
   ([] (install! nil))
@@ -18,18 +17,7 @@
 
 (defn debug [^String s]
   (binding [*out* *err*]
-    #_(println s)))
-
-(def pipe-state
-  (volatile! nil))
-
-(defn handle-pipe! []
-  (Signal/handle
-    (Signal. "PIPE")
-    (reify SignalHandler
-      (handle [_ _]
-        (debug ":PIPE")
-        (vreset! pipe-state :PIPE)))))
+    (println s)))
 
 (defn close!
   [^Closeable x]
@@ -75,7 +63,6 @@
       (debug (str "error during reading from socket: " (ex-message e))))))
 
 (defn -main [& args]
-  (handle-pipe!)
   (debug "starting proxy ...")
   (let [in (BufferedInputStream. System/in)
         out (BufferedOutputStream. System/out)
