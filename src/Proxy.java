@@ -7,6 +7,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Proxy {
 
+    public static void debug(String s) {
+
+    }
+
     public static void main(String[] args) {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
              BufferedWriter out = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
@@ -15,14 +19,14 @@ public class Proxy {
              InputStream fromSocket = new BufferedInputStream(sock.getInputStream())) {
             final AtomicBoolean running = new AtomicBoolean(true);
 
-            System.err.println("starting AciTcpProxy ...");
+            debug("starting AciTcpProxy ...");
 
             Thread readStdin = new Thread() {
                 public void run() {
                     try {
                         readStdinLoop(running, in, toSocket);
                     } catch (Throwable t) {
-                        System.err.println("error in stdin read loop: " + t.getMessage());
+                        debug("error in stdin read loop: " + t.getMessage());
                     }
                 }
             };
@@ -32,7 +36,7 @@ public class Proxy {
                     try {
                         readSocketLoop(running, out, fromSocket);
                     } catch (Throwable t) {
-                        System.err.println("error in socket read loop: " + t.getMessage());
+                        debug("error in socket read loop: " + t.getMessage());
                     }
                 }
             };
@@ -44,9 +48,9 @@ public class Proxy {
             Thread.sleep(3000);
             readSocket.interrupt();
         } catch (Throwable t) {
-            System.err.println("Unexpected exception in AciTcpProxy. Message: " + t.getMessage());
+            debug("Unexpected exception in AciTcpProxy. Message: " + t.getMessage());
         } finally {
-            System.err.println("AciTcpProxy exiting...");
+            debug("AciTcpProxy exiting...");
         }
     }
 
@@ -57,21 +61,21 @@ public class Proxy {
             String line = in.readLine();
             if (line == null || line.trim().equals("")) {
                 byte[] byteChunk = decoder.decode(sb.toString());
-                System.err.println("pushing " + byteChunk.length + " bytes");
+                debug("pushing " + byteChunk.length + " bytes");
                 toSocket.write(byteChunk);
                 toSocket.flush();
                 sb = new StringBuilder();
             }
 
             if (line == null) {
-                System.err.println("stdin closed");
+                debug("stdin closed");
                 running.set(false);
             } else {
                 sb.append(line);
                 sb.append("\n");
             }
         }
-        System.err.println("stdin loop exiting");
+        debug("stdin loop exiting");
     }
 
     private static void readSocketLoop(AtomicBoolean running, BufferedWriter out, InputStream fromSocket) throws IOException {
@@ -85,10 +89,10 @@ public class Proxy {
                 out.write("\n");
                 out.flush();
             } else {
-                System.err.println("read socket closed");
+                debug("read socket closed");
                 running.set(false);
             }
         }
-        System.err.println("socket read loop exiting");
+        debug("socket read loop exiting");
     }
 }
