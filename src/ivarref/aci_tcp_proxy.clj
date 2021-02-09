@@ -42,7 +42,7 @@
               (reset! run? false)))))
       (debug "done reading from System/in"))
     (catch Exception e
-      (debug (str "error during reading System/in: " (ex-message e))))))
+      (debug (str "error during reading System/in: " (.getMessage e))))))
 
 (defn read-socket [^OutputStream out ^InputStream from-socket]
   (debug "reading from socket ...")
@@ -60,7 +60,7 @@
               (reset! run? false)))))
       (debug "done reading from socket"))
     (catch Exception e
-      (debug (str "error during reading from socket: " (ex-message e))))))
+      (debug (str "error during reading from socket: " (.getMessage e))))))
 
 (defn -main [& args]
   (debug "starting proxy ...")

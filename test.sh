@@ -1,13 +1,8 @@
 #!/bin/bash
 
-rm ./proxy
-
-set -e
-
-clojure -M:native-image
-
 clojure -Sdeps '{:deps {aleph/aleph {:mvn/version "0.4.6"}}}' \
-        -M --report stderr \
+        -J-Dclojure.main.report=stderr \
+        -M \
         -e "(require '[aleph.tcp :as tcp]) \
             (require '[manifold.stream :as s]) \
             (import '(java.net InetSocketAddress)) \
@@ -24,12 +19,9 @@ done
 
 echo "echo server ready!"
 
-./proxy < proxy > out.bin
-
-echo "proxy done!"
+echo "#!/usr/bin/java --source 11" > Proxy
+cat src/Proxy.java >> Proxy
+chmod +x ./Proxy
+echo "hello world" | base64 | ./Proxy | base64 --decode > out.txt
 
 kill $(cat ./.echo-server.pid) || true
-
-diff -qs proxy out.bin
-
-cp -fv ./proxy resources/ivarref/aci-tcp-proxy/proxy

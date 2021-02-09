@@ -3,9 +3,6 @@
 set -ex
 
 clojure -Spom
-clojure -M:native-image
-cp -fv ./proxy resources/ivarref/aci-tcp-proxy/proxy
-
 clojure -M:jar
 
 COMMIT_COUNT="$(git rev-list --count HEAD)"
