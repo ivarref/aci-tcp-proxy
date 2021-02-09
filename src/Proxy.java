@@ -32,7 +32,7 @@ public class Proxy {
                     try {
                         readSocketLoop(running, out, fromSocket);
                     } catch (Throwable t) {
-                        System.err.println("error in socket read loop:" + t.getMessage());
+                        System.err.println("error in socket read loop: " + t.getMessage());
                     }
                 }
             };
@@ -41,6 +41,7 @@ public class Proxy {
             readSocket.start();
 
             readStdin.join();
+            Thread.sleep(3000);
             readSocket.interrupt();
         } catch (Throwable t) {
             System.err.println("Unexpected exception in AciTcpProxy. Message: " + t.getMessage());
