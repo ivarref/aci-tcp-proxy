@@ -143,7 +143,10 @@
   (let [consume-base64-chunk! (fn [[_ str-chunk]]
                                 (log/info "consuming base64 chunk, sending to local client")
                                 (try
-                                  (s/put! local (decode str-chunk))
+                                  (let [ok? @(s/put! local ^"[B" (decode str-chunk))]
+                                    (if ok?
+                                      (log/info "OK send to local client")
+                                      (log/error "could not send to local client")))
                                   (catch Exception e
                                     (log/error "failed to put! string-chunk: " (ex-message e))
                                     (log/error "string-chunk:\n" (pr-str str-chunk)))))]
@@ -151,10 +154,13 @@
     (s/consume
       (fn [byte-chunk]
         (log/info "pushing to remote:\n" (encode byte-chunk))
-        (s/put! remote (str (encode byte-chunk) "\n")))
+        (if @(s/put! remote (str (encode byte-chunk) "\n"))
+          (log/info "ok push to remote")
+          (log/error "could not push to remote")))
       local)
 
     (->> remote
+         (s/->source)
          (s/mapcat seq)
          (s/reduce (fn [[prev o] n]
                      (log/info (pr-str "consume from remote..." n))
