@@ -171,6 +171,12 @@
                              proxy-path "/app/lib/Proxy"
                              block?    true}
                       :as   opts}]
+  (Thread/setDefaultUncaughtExceptionHandler
+    (reify Thread$UncaughtExceptionHandler
+      (uncaughtException [_ thread ex]
+        (log/error ex "Uncaught exception on" (.getName thread))
+        (log/error "error message was:" (ex-message ex)))))
+
   (assert (not-empty-string resource-group) ":resource-group must be specified")
   (let [opts (update opts :proxy-path (fn [o] (or o proxy-path)))
         container-name (resolve-container-name opts)
