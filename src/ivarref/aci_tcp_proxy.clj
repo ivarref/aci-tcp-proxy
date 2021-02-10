@@ -71,7 +71,7 @@
                              proxy-path
                              remote-host
                              remote-port]
-                      :as opts}]
+                      :as   opts}]
   (log/info "creating remote proxy at" proxy-path "...")
   (let [subscriptionId (resolve-subscription-id opts)
         resource-group resource-group
@@ -122,10 +122,10 @@
 
 (defn add-close-handlers [local remote]
   (s/on-closed
-   local
-   (fn [& args]
-     (log/info "local client closed connection")
-     (s/close! remote)))
+    local
+    (fn [& args]
+      (log/info "local client closed connection")
+      (s/close! remote)))
 
   (s/on-closed
     remote
@@ -177,13 +177,13 @@
                              proxy-path
                              remote-host
                              remote-port]
-                      :or   {port      8888
-                             bind      "127.0.0.1"
-                             port-file ".aci-port"
-                             proxy-path "/app/lib/Proxy"
+                      :or   {port        0
+                             bind        "127.0.0.1"
+                             port-file   ".aci-port"
+                             proxy-path  "/app/lib/Proxy"
                              remote-host "127.0.0.1"
                              remote-port 7777
-                             block?    true}
+                             block?      true}
                       :as   opts}]
   (Thread/setDefaultUncaughtExceptionHandler
     (reify Thread$UncaughtExceptionHandler
@@ -193,9 +193,9 @@
 
   (assert (not-empty-string resource-group) ":resource-group must be specified")
   (let [opts (-> opts
-               (update :proxy-path (fn [o] (or o proxy-path)))
-               (update :remote-host (fn [o] (or o remote-host)))
-               (update :remote-port (fn [o] (or o remote-port))))
+                 (update :proxy-path (fn [o] (or o proxy-path)))
+                 (update :remote-host (fn [o] (or o remote-host)))
+                 (update :remote-port (fn [o] (or o remote-port))))
         container-name (resolve-container-name opts)
         subscription-id (resolve-subscription-id opts)
         _access-token (access-token opts)]
