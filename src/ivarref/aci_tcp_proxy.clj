@@ -174,7 +174,7 @@
     (s/consume
       (fn [byte-chunk]
         (log/info "pushing to remote:" (str/trim (encode byte-chunk)))
-        (if @(s/put! remote (str (encode byte-chunk) "\n"))
+        (if @(s/put! remote (str (encode byte-chunk) "\n\n"))
           (log/info "ok push to remote")
           (log/error "could not push to remote")))
       local)
@@ -196,7 +196,7 @@
            (s/reduce (fn [o n]
                        (if (not (contains? #{\! \$} n))
                          (do
-                           (log/info "dropping" n)
+                           (log/debug "dropping" n)
                            o)
                          (let [o (str o n)]
                            (log/info "consuming" n)
