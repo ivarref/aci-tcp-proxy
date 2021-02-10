@@ -137,12 +137,6 @@
       (log/info "remote closed connection")
       (s/close! local))))
 
-(defn bytes? [x]
-  (if (nil? x)
-    false
-    (= (Class/forName "[B")
-       (.getClass x))))
-
 (defn proxy-handler [local remote]
   (log/info "setting up proxy between local socket and remote websocket")
   (add-close-handlers local remote)
