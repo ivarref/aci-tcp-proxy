@@ -159,25 +159,18 @@
         (assert (= parsed byt))
         (println bin-str byt)))))
 
-
 (defn proxy-handler [local remote]
   (log/info "setting up proxy between local socket and remote websocket")
   (add-close-handlers local remote)
-  (let [consume-base64-chunk! (fn [[_ str-chunk]]
-                                (log/info "consuming base64 chunk, sending to local client")
-                                (try
-                                  (let [ok? @(s/put! local ^"[B" (decode str-chunk))]
-                                    (if ok?
-                                      (log/info "OK send to local client")
-                                      (log/error "could not send to local client")))
-                                  (catch Exception e
-                                    (log/error "failed to put! string-chunk: " (ex-message e))
-                                    (log/error "string-chunk:\n" (pr-str str-chunk)))))
-        consume-byte! (fn [byte-str]
-                        (when (= 8 (count byte-str))
-                          (log/info "sending byte back to local client!")
-                          () (Integer/parseInt byte-str 2)))]
-
+  (let [consume-byte! (fn [byte-str]
+                        (if (= 8 (count byte-str))
+                          (do
+                            (log/info "sending byte back to local client!")
+                            (if @(s/put! local (byte-array [(parse-byte byte-str)]))
+                              (log/info "sent back a single byte!")
+                              (log/error "failed to sent back a single byte!")))
+                          (do
+                            (log/warn "skipping incomplete byte consume!"))))]
     (s/consume
       (fn [byte-chunk]
         (log/info "pushing to remote:" (str/trim (encode byte-chunk)))
