@@ -158,20 +158,21 @@
           (log/error "could not push to remote")))
       local)
 
-    (->> remote
-         (s/->source)
-         (s/mapcat seq)
-         (s/reduce (fn [[prev o] n]
-                     (log/info (pr-str "consume from remote..." n))
-                     (if (and (= \return prev) (= \newline n))
-                       (do (consume-base64-chunk! [n o])
-                           [n ""])
-                       [n (str o n)]))
-                   ["" ""])
-         (deref)
-         (consume-base64-chunk!))
-    (log/info "remote is drained, closing")
-    (s/close! local)))
+    (future
+      (->> remote
+           (s/->source)
+           (s/mapcat seq)
+           (s/reduce (fn [[prev o] n]
+                       (log/info (pr-str "consume from remote..." n))
+                       (if (and (= \return prev) (= \newline n))
+                         (do (consume-base64-chunk! [n o])
+                             [n ""])
+                         [n (str o n)]))
+                     ["" ""])
+           (deref)
+           (consume-base64-chunk!))
+      (log/info "remote is drained, closing")
+      (s/close! local))))
 
 (defn handler [opts sock _info]
   (log/info "starting new connection ...")
