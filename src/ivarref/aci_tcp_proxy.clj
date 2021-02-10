@@ -140,15 +140,18 @@
 (defn proxy-handler [local remote]
   (log/info "setting up proxy between local socket and remote websocket")
   (add-close-handlers local remote)
-  (let [consume-base64-chunk!
-        (fn [[_ str-chunk]]
-          (log/info "sending to local client")
-          (s/put! local (decode str-chunk)))]
+  (let [consume-base64-chunk! (fn [[_ str-chunk]]
+                                (log/info "consuming base64 chunk, sending to local client")
+                                (try
+                                  (s/put! local (decode str-chunk))
+                                  (catch Exception e
+                                    (log/error "failed to put! string-chunk: " (ex-message e))
+                                    (log/error "string-chunk:\n" (pr-str str-chunk)))))]
 
     (s/consume
-      (fn [chunk]
-        (log/info "pushing to remote...")
-        (s/put! remote (str (encode chunk) "\n")))
+      (fn [byte-chunk]
+        (log/info "pushing to remote:\n" (encode byte-chunk))
+        (s/put! remote (str (encode byte-chunk) "\n")))
       local)
 
     (->> remote
