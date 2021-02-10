@@ -9,7 +9,7 @@
             [aleph.http :as http]
             [manifold.stream :as s]
             [byte-streams :as bs])
-  (:import (java.util UUID)
+  (:import (java.util UUID Base64)
            (java.net InetSocketAddress)))
 
 (defn pretty-map [m]
@@ -106,8 +106,58 @@
           (log/info "got new websocket connection!")
           sock)))))
 
-(defn handler [opts local-client info]
-  (log/info "starting new connection ..."))
+(defn decode [str-chunk]
+  (.decode (Base64/getMimeDecoder) ^String str-chunk))
+
+(defn encode [byte-chunk]
+  (.encode (Base64/getMimeEncoder) ^"[B" byte-chunk))
+
+(defn proxy-handler [local remote]
+  (log/info "setting up proxy between local socket and remote websocket")
+  (let [consume-base64-chunk!
+        (fn [[_ str-chunk]]
+          (log/info "sending to local client")
+          (s/put! local (decode str-chunk)))]
+
+    (s/on-closed
+      local
+      (fn [& args]
+        (log/info "local client closed connection")
+        (s/close! remote)))
+
+    (s/on-closed
+      remote
+      (fn [& args]
+        (log/info "remote closed connection")
+        (s/close! local)))
+
+    (s/consume
+      (fn [chunk]
+        (log/info "pushing to remote...")
+        (s/put! remote (str (encode chunk) "\n")))
+      local)
+
+    (->> remote
+         (s/mapcat seq)
+         (s/reduce (fn [[prev o] n]
+                     (log/info (pr-str "consume from remote..." n))
+                     (if (and (= \return prev) (= \newline n))
+                       (do (consume-base64-chunk! [n o])
+                           [n ""])
+                       [n (str o n)]))
+                   ["" ""])
+         (deref)
+         (consume-base64-chunk!))
+    (log/info "remote is drained, closing")
+    (s/close! local)))
+
+(defn handler [opts sock _info]
+  (log/info "starting new connection ...")
+  (if-let [websock (get-websocket opts)]
+    (proxy-handler sock websock)
+    (do
+      (log/error "could not get websocket, aborting!")
+      (s/close! sock))))
 
 (defn start-client! [{:keys [port
                              port-file
