@@ -4,7 +4,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -115,13 +114,19 @@ public class Proxy {
 
     private static void readSocketLoop(AtomicBoolean running, BufferedWriter out, InputStream fromSocket) throws IOException {
         byte[] buf = new byte[1024];
-        final Base64.Encoder encoder = Base64.getMimeEncoder();
         while (running.get()) {
             int read = fromSocket.read(buf);
             if (read != 1) {
-                String encoded = encoder.encodeToString(Arrays.copyOf(buf, read));
-                out.write(encoded);
-                out.write("\n");
+                for (int i=0; i<read; i++) {
+                    byte b = buf[i];
+                    out.write("\n");
+                    String s = String.format("%8s", Integer.toBinaryString(b & 0xFF))
+                            .replace(' ', '$')
+                            .replace('0', '$')
+                            .replace('1', '!');
+                    out.write(s);
+                    out.write("\n");
+                }
                 out.flush();
             } else {
                 debug("read socket closed");
