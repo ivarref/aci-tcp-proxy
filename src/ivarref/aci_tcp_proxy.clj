@@ -107,7 +107,7 @@
           (log/info "entering password ...")
           @(s/put! sock password)
           @(s/put! sock (str remote-host "\n" remote-port "\n"))
-          (log/info "got new websocket connection!")
+          (log/info "got new websocket connection for" remote-host ":" remote-port)
           sock)))))
 
 (defn decode [str-chunk]
@@ -116,24 +116,26 @@
 (defn encode [byte-chunk]
   (.encode (Base64/getMimeEncoder) ^"[B" byte-chunk))
 
+(defn add-close-handlers [local remote]
+  (s/on-closed
+   local
+   (fn [& args]
+     (log/info "local client closed connection")
+     (s/close! remote)))
+
+  (s/on-closed
+    remote
+    (fn [& args]
+      (log/info "remote closed connection")
+      (s/close! local))))
+
 (defn proxy-handler [local remote]
   (log/info "setting up proxy between local socket and remote websocket")
+  (add-close-handlers local remote)
   (let [consume-base64-chunk!
         (fn [[_ str-chunk]]
           (log/info "sending to local client")
           (s/put! local (decode str-chunk)))]
-
-    (s/on-closed
-      local
-      (fn [& args]
-        (log/info "local client closed connection")
-        (s/close! remote)))
-
-    (s/on-closed
-      remote
-      (fn [& args]
-        (log/info "remote closed connection")
-        (s/close! local)))
 
     (s/consume
       (fn [chunk]
