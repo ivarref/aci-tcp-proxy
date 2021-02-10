@@ -14,6 +14,7 @@ public class Proxy {
 
     public static synchronized void debug(String s) {
         try {
+            System.err.println(s);
             s = s + "\n";
             Files.write(Paths.get(logFile.getAbsolutePath()), s.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
         }catch (IOException e) {
@@ -21,8 +22,21 @@ public class Proxy {
         }
     }
 
+    public static String getOpt(String envKey, BufferedReader bufIn) throws IOException {
+        String v = System.getenv(envKey);
+        if (v == null) {
+            v = "";
+        }
+        v = v.trim();
+        if (v.equalsIgnoreCase("")) {
+            v = bufIn.readLine().trim();
+            debug("using >" + v + "< for " + envKey + " from remote");
+        }
+        return v;
+    }
+
     public static void main(String[] args) {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+        try (BufferedReader bufIn = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
              BufferedWriter out = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
             final AtomicBoolean running = new AtomicBoolean(true);
 
@@ -34,8 +48,8 @@ public class Proxy {
                 debug("uncaught exception message was: " + e.getMessage());
             });
 
-            String host = System.getenv("PROXY_REMOTE_HOST") != null ? System.getenv("PROXY_REMOTE_HOST") : in.readLine();
-            String port = System.getenv("PROXY_REMOTE_PORT") != null ? System.getenv("PROXY_REMOTE_PORT") : in.readLine();
+            String host = getOpt("PROXY_REMOTE_HOST", bufIn);
+            String port = getOpt("PROXY_REMOTE_PORT", bufIn);
 
             try (Socket sock = new Socket(host, Integer.parseInt(port));
                  OutputStream toSocket = new BufferedOutputStream(sock.getOutputStream());
@@ -45,7 +59,7 @@ public class Proxy {
                 Thread readStdin = new Thread() {
                     public void run() {
                         try {
-                            readStdinLoop(running, in, toSocket);
+                            readStdinLoop(running, bufIn, toSocket);
                         } catch (Throwable t) {
                             debug("error in stdin read loop: " + t.getMessage());
                         }
