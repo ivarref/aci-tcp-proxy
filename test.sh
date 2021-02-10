@@ -7,7 +7,7 @@ clojure -Sdeps '{:deps {aleph/aleph {:mvn/version "0.4.6"}}}' \
             (require '[manifold.stream :as s]) \
             (import '(java.net InetSocketAddress)) \
             (println \"starting server...\") \
-            (tcp/start-server (fn [s info] (s/connect s s)) {:port 7777 :socket-address (InetSocketAddress. \"127.0.0.1\" 7777)}) \
+            (tcp/start-server (fn [s info] (s/connect s s)) {:socket-address (InetSocketAddress. \"127.0.0.1\" 7777)}) \
             #_(shutdown-agents)" \
             & echo $! > ./.echo-server.pid
 
@@ -22,8 +22,11 @@ echo "echo server ready!"
 echo "#!/usr/bin/java --source 11" > Proxy
 cat src/Proxy.java >> Proxy
 chmod +x ./Proxy
-echo "hello world" | base64 | PROXY_REMOTE_HOST=127.0.0.1 PROXY_REMOTE_PORT=7777 ./Proxy | base64 --decode > out.txt
-cat out.txt
+
+PAYLOAD=$(printf "hello\ndear\nworld!" | base64)
+printf "localhost\n7777\n$PAYLOAD" | ./Proxy
+
+#cp -fv Proxy $HOME/code/learn/ire-test/src/.
 
 kill $(cat ./.echo-server.pid) || true
 rm ./.echo-server.pid
