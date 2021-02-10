@@ -31,7 +31,12 @@ public class Proxy {
         }
         v = v.trim();
         if (v.equalsIgnoreCase("")) {
-            v = readLine().trim();
+            v = readLine();
+            if (v == null) {
+                debug("ERROR: got null for " +envKey);
+                throw new RuntimeException("got null for " + envKey);
+            }
+            v = v.trim();
             debug("using >" + v + "< for " + envKey + " from remote");
         }
         return v;
@@ -47,6 +52,7 @@ public class Proxy {
     }
 
     public static void main(String[] args) {
+        debug("AciTcpProxy starting ...");
         try (BufferedWriter out = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
             final AtomicBoolean running = new AtomicBoolean(true);
 
@@ -95,6 +101,7 @@ public class Proxy {
             }
         } catch (Throwable t) {
             debug("Unexpected exception in AciTcpProxy. Message: " + t.getMessage());
+            t.printStackTrace();
         } finally {
             debug("AciTcpProxy exiting...");
         }
