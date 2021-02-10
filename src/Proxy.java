@@ -1,20 +1,33 @@
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Proxy {
 
-    public static void debug(String s) {
+    static File logFile = null;
 
+    public static void debug(String s) {
+        try {
+            s = s + "\n";
+            Files.write(Paths.get(logFile.getAbsolutePath()), s.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
+        }catch (IOException e) {
+            //exception handling left as an exercise for the reader
+        }
     }
 
     public static void main(String[] args) {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
              BufferedWriter out = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
             final AtomicBoolean running = new AtomicBoolean(true);
+
+            logFile = File.createTempFile("proxy-", ".log");
+            logFile.deleteOnExit();
 
             String host = System.getenv("PROXY_REMOTE_HOST") != null ? System.getenv("PROXY_REMOTE_HOST") : in.readLine();
             String port = System.getenv("PROXY_REMOTE_PORT") != null ? System.getenv("PROXY_REMOTE_PORT") : in.readLine();
@@ -65,7 +78,6 @@ public class Proxy {
             String line = in.readLine();
             if (line == null || line.trim().equals("")) {
                 byte[] byteChunk = decoder.decode(sb.toString());
-                debug("pushing " + byteChunk.length + " bytes");
                 toSocket.write(byteChunk);
                 toSocket.flush();
                 sb = new StringBuilder();
