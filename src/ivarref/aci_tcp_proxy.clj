@@ -204,6 +204,7 @@
     (let [server (tcp/start-server (fn [s info] (handler opts s info))
                                    {:socket-address (InetSocketAddress. ^String bind ^Integer port)})]
       (log/info "started proxy server on" (str bind "@" (netty/port server)))
+      (log/info "remote is" (str remote-host ":" remote-port))
       (spit port-file (netty/port server))
       (log/info "wrote port" (netty/port server) "to" port-file)
       (.addShutdownHook
