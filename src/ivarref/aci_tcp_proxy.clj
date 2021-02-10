@@ -111,12 +111,12 @@
                 bs/to-string
                 (json/decode keyword))
             _ (log/info "connecting to websocket URL" webSocketUri "...")
-            sock @(http/websocket-client webSocketUri)]
+            remote-websocket @(http/websocket-client webSocketUri)]
         (log/info "entering password ...")
-        @(s/put! sock password)
-        @(s/put! sock (str remote-host "\n" remote-port "\n"))
+        @(s/put! remote-websocket password)
+        @(s/put! remote-websocket (str remote-host "\n" remote-port "\n"))
         (log/info "got new websocket connection for" (str remote-host ":" remote-port))
-        sock))))
+        remote-websocket))))
 
 (defn decode [str-chunk]
   (.decode (Base64/getMimeDecoder) ^String str-chunk))
