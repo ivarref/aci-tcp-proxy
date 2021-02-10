@@ -64,7 +64,10 @@
           (:accessToken v))))
 
 (defn get-websocket [{:keys [resource-group
-                             proxy-path] :as opts}]
+                             proxy-path
+                             remote-host
+                             remote-port]
+                      :as opts}]
   (log/info "creating remote proxy at" proxy-path "...")
   (let [subscriptionId (resolve-subscription-id opts)
         resource-group resource-group
@@ -103,6 +106,7 @@
               sock @(http/websocket-client webSocketUri)]
           (log/info "entering password ...")
           @(s/put! sock password)
+          @(s/put! sock (str remote-host "\n" remote-port "\n"))
           (log/info "got new websocket connection!")
           sock)))))
 
@@ -164,11 +168,15 @@
                              bind
                              resource-group
                              block?
-                             proxy-path]
+                             proxy-path
+                             remote-host
+                             remote-port]
                       :or   {port      8888
                              bind      "127.0.0.1"
                              port-file ".aci-port"
                              proxy-path "/app/lib/Proxy"
+                             remote-host "127.0.0.1"
+                             remote-port 7777
                              block?    true}
                       :as   opts}]
   (Thread/setDefaultUncaughtExceptionHandler
@@ -178,7 +186,10 @@
         (log/error "error message was:" (ex-message ex)))))
 
   (assert (not-empty-string resource-group) ":resource-group must be specified")
-  (let [opts (update opts :proxy-path (fn [o] (or o proxy-path)))
+  (let [opts (-> opts
+               (update :proxy-path (fn [o] (or o proxy-path)))
+               (update :remote-host (fn [o] (or o remote-host)))
+               (update :remote-port (fn [o] (or o remote-port))))
         container-name (resolve-container-name opts)
         subscription-id (resolve-subscription-id opts)
         _access-token (access-token opts)]

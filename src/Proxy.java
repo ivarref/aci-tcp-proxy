@@ -14,39 +14,42 @@ public class Proxy {
     public static void main(String[] args) {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
              BufferedWriter out = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
-             Socket sock = new Socket("127.0.0.1", 7777);
              OutputStream toSocket = new BufferedOutputStream(sock.getOutputStream());
              InputStream fromSocket = new BufferedInputStream(sock.getInputStream())) {
             final AtomicBoolean running = new AtomicBoolean(true);
 
-            debug("starting AciTcpProxy ...");
+            String host = in.readLine();
+            String port = in.readLine();
+            try (Socket sock = new Socket(host, Integer.parseInt(port))) {
+                debug("starting AciTcpProxy ...");
 
-            Thread readStdin = new Thread() {
-                public void run() {
-                    try {
-                        readStdinLoop(running, in, toSocket);
-                    } catch (Throwable t) {
-                        debug("error in stdin read loop: " + t.getMessage());
+                Thread readStdin = new Thread() {
+                    public void run() {
+                        try {
+                            readStdinLoop(running, in, toSocket);
+                        } catch (Throwable t) {
+                            debug("error in stdin read loop: " + t.getMessage());
+                        }
                     }
-                }
-            };
+                };
 
-            Thread readSocket = new Thread() {
-                public void run() {
-                    try {
-                        readSocketLoop(running, out, fromSocket);
-                    } catch (Throwable t) {
-                        debug("error in socket read loop: " + t.getMessage());
+                Thread readSocket = new Thread() {
+                    public void run() {
+                        try {
+                            readSocketLoop(running, out, fromSocket);
+                        } catch (Throwable t) {
+                            debug("error in socket read loop: " + t.getMessage());
+                        }
                     }
-                }
-            };
+                };
 
-            readStdin.start();
-            readSocket.start();
+                readStdin.start();
+                readSocket.start();
 
-            readStdin.join();
-            Thread.sleep(3000);
-            readSocket.interrupt();
+                readStdin.join();
+                Thread.sleep(3000);
+                readSocket.interrupt();
+            }
         } catch (Throwable t) {
             debug("Unexpected exception in AciTcpProxy. Message: " + t.getMessage());
         } finally {
