@@ -153,7 +153,7 @@
 
     (s/consume
       (fn [byte-chunk]
-        (log/info "pushing to remote:\n" (encode byte-chunk))
+        (log/info "pushing to remote:" (str/trim (encode byte-chunk)))
         (if @(s/put! remote (str (encode byte-chunk) "\n"))
           (log/info "ok push to remote")
           (log/error "could not push to remote")))
