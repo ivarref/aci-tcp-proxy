@@ -1,6 +1,4 @@
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -16,7 +14,6 @@ public class Proxy {
 
     public static synchronized void debug(String s) {
         try {
-            System.err.println(s);
             s = s + "\n";
             Files.write(Paths.get(logFile.getAbsolutePath()), s.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
         }catch (IOException e) {
@@ -24,7 +21,7 @@ public class Proxy {
         }
     }
 
-    public static String getOpt(String envKey) {
+    public static String getOpt(String envKey) throws IOException {
         String v = System.getenv(envKey);
         if (v == null) {
             v = "";
@@ -42,22 +39,30 @@ public class Proxy {
         return v;
     }
 
-    public static String readLine() {
-        char[] chars = System.console().readPassword();
-        if (chars == null) {
-            return null;
+    private static final BufferedReader bufStdin = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+
+    public static String readLine() throws IOException {
+        if (System.console() != null) {
+            char[] chars = System.console().readPassword();
+            if (chars == null) {
+                return null;
+            } else {
+                String v = new String(chars);
+                return v;
+            }
         } else {
-            return new String(chars);
+            return bufStdin.readLine();
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+        logFile = File.createTempFile("proxy-", ".log");
+        logFile.deleteOnExit();
+
         debug("AciTcpProxy starting ...");
         try (BufferedWriter out = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
             final AtomicBoolean running = new AtomicBoolean(true);
 
-            logFile = File.createTempFile("proxy-", ".log");
-            logFile.deleteOnExit();
 
             Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
                 debug("uncaught exception on thread: " + t.getName());
@@ -101,7 +106,6 @@ public class Proxy {
             }
         } catch (Throwable t) {
             debug("Unexpected exception in AciTcpProxy. Message: " + t.getMessage());
-            t.printStackTrace();
         } finally {
             debug("AciTcpProxy exiting...");
         }
