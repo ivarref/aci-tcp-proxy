@@ -41,6 +41,8 @@
             (log/info "resolved container name to" v)
             v))))
 
+(def get-container-name (memoize resolve-container-name))
+
 (defn resolve-subscription-id [_]
   (as-> ^{:out :string} ($ az account list) v
         (check v)
@@ -58,6 +60,8 @@
           (catch Exception e
             (assert false "could not resolve subscription id!")))))
 
+(def get-subscription-id (memoize resolve-subscription-id))
+
 (defn access-token [_]
   (as-> ^{:out :string} ($ az account get-access-token) v
         (check v)
@@ -73,10 +77,10 @@
                              remote-port]
                       :as   opts}]
   (log/info "creating remote proxy at" proxy-path "...")
-  (let [subscriptionId (resolve-subscription-id opts)
+  (let [subscriptionId (get-subscription-id opts)
         resource-group resource-group
-        container-group-name (resolve-container-name opts)
-        container-name (resolve-container-name opts)
+        container-group-name (get-container-name opts)
+        container-name (get-container-name opts)
         token (access-token opts)
         ; POST https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ContainerInstance/containerGroups/{containerGroupName}/containers/{containerName}/exec?api-version=2019-12-01
         url (str "https://management.azure.com/subscriptions/"
@@ -196,8 +200,8 @@
                  (update :proxy-path (fn [o] (or o proxy-path)))
                  (update :remote-host (fn [o] (or o remote-host)))
                  (update :remote-port (fn [o] (or o remote-port))))
-        container-name (resolve-container-name opts)
-        subscription-id (resolve-subscription-id opts)
+        container-name (get-container-name opts)
+        subscription-id (get-subscription-id opts)
         _access-token (access-token opts)]
     (assert (not-empty-string container-name) ":container-name or :container-name-starts-with must be specified")
     (log/info "starting aci tcp proxy server...")
