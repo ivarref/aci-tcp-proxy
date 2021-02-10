@@ -1,87 +1,74 @@
 (ns ivarref.aci-tcp-proxy
-  (:gen-class)
-  (:require [clojure.java.io :as io])
-  (:import (java.io OutputStream InputStream BufferedInputStream BufferedOutputStream Closeable File)
-           (java.net Socket)))
+  (:require [aleph.tcp :as tcp]
+            [babashka.process :refer [$ check]]
+            [clojure.walk :as walk]
+            [cheshire.core :as json]
+            [clojure.string :as str])
+  (:import (java.util UUID)))
 
-(defn install!
-  ([] (install! nil))
-  ([dest-path]
-   (with-open [in (io/input-stream (io/resource "ivarref/aci-tcp-proxy/proxy"))]
-     (let [^File dest (io/file (str dest-path "/proxy"))]
-       (io/copy in dest)
-       (.setExecutable dest true)))))
+(defn pretty-map [m]
+  (walk/postwalk
+    (fn [x]
+      (if (map? x)
+        (into (sorted-map) [x])
+        x))
+    m))
 
-(defn ^Socket socket [^String host ^long port]
-  (Socket. host port))
+(defn not-empty-string [s]
+  (and (string? s)
+       (not-empty s)))
 
-(defn debug [^String s]
-  (binding [*out* *err*]
-    (println s)))
+(defn resolve-container-name [{:keys [resource-group
+                                      container-name]
+                               :as opts}]
+  (if (not (str/ends-with? container-name "*"))
+    container-name
+    (as-> ^{:out :string} ($ az container list -g ~resource-group --query (str "[?starts_with(name, '" (subs container-name 0 (dec (count container-name))) "')].name")) v
+          (check v)
+          (:out v)
+          (json/parse-string v keyword)
+          (vec v)
+          (do (assert (= 1 (count v)) "expected to find a single container")
+              v)
+          (first v))))
 
-(defn close!
-  [^Closeable x]
-  (when x
-    (try
-      (.close x)
-      (catch Exception e
-        nil))))
+(defn resolve-subscription-id [_]
+  (as-> ^{:out :string} ($ az account list) v
+        (check v)
+        (:out v)
+        (json/parse-string v keyword)
+        (vec v)
+        (pretty-map v)
+        (filter (comp true? :isDefault) v)
+        (first v)
+        (:id v)
+        (try
+          (UUID/fromString v)
+          v
+          (catch Exception e
+            (assert false "could not resolve subscription id!")))))
 
-(defn read-stdin [^InputStream in ^OutputStream to-socket]
-  (debug "reading from System/in ...")
-  (try
-    (let [buf (byte-array 1024)
-          run? (atom true)]
-      (while @run?
-        (let [num-bytes (.read in buf)]
-          (if (not= -1 num-bytes)
-            (do
-              (.write to-socket buf 0 num-bytes)
-              (.flush to-socket))
-            (do
-              (reset! run? false)))))
-      (debug "done reading from System/in"))
-    (catch Exception e
-      (debug (str "error during reading System/in: " (.getMessage e))))))
+(defn access-token [_]
+  (as-> ^{:out :string} ($ az account get-access-token) v
+        (check v)
+        (:out v)
+        (json/parse-string v keyword)
+        (do
+          (assert (= "Bearer" (:tokenType v)))
+          (:accessToken v))))
 
-(defn read-socket [^OutputStream out ^InputStream from-socket]
-  (debug "reading from socket ...")
-  (try
-    (let [buf (byte-array 1024)
-          run? (atom true)]
-      (while @run?
-        (let [num-bytes (.read from-socket buf)]
-          (if (not= -1 num-bytes)
-            (do
-              (.write out buf 0 num-bytes)
-              (.flush out))
-            (do
-              (debug "reading from socket closed!")
-              (reset! run? false)))))
-      (debug "done reading from socket"))
-    (catch Exception e
-      (debug (str "error during reading from socket: " (.getMessage e))))))
+(defn start-client! [{:keys [container-name
+                             resource-group
+                             subscription-id]
+                      :as opts}]
+  (assert (not-empty-string resource-group) ":resource-group must be specified")
+  (let [container-name (resolve-container-name opts)
+        subscription-id (or (not-empty-string subscription-id)
+                            (resolve-subscription-id opts))]
+    (assert (not-empty-string container-name) ":container-name or :container-name-starts-with must be specified")))
 
-(defn -main [& args]
-  (debug "starting proxy ...")
-  (let [in (BufferedInputStream. System/in)
-        out (BufferedOutputStream. System/out)
-        sock (socket "127.0.0.1" 7777)
-        to-socket (-> sock
-                      ^OutputStream (.getOutputStream)
-                      (BufferedOutputStream.))
-        from-socket (-> sock
-                        ^InputStream (.getInputStream)
-                        (BufferedInputStream.))]
-    (debug "starting proxy ... OK")
 
-    (let [read-stdin (future (read-stdin in to-socket))
-          read-sock (future (read-socket out from-socket))]
-      @read-stdin
-      (debug "shutting down ...")
-      (Thread/sleep 1000)
-      (close! sock)
-      (shutdown-agents))))
-
-(defn proxy! [_opts]
-  (-main))
+(comment
+  (def opts {:resource-group "rg-stage-we"
+             :container-name "aci-iretest*"})
+  (start-client! opts))
