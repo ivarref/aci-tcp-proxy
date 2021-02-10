@@ -30,7 +30,7 @@ public class Proxy {
             logFile.deleteOnExit();
 
             Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
-                debug("uncaught exception on thread " + t.getName());
+                debug("uncaught exception on thread: " + t.getName());
                 debug("uncaught exception message was: " + e.getMessage());
             });
 
