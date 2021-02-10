@@ -36,7 +36,10 @@
           (vec v)
           (do (assert (= 1 (count v)) "expected to find a single container")
               v)
-          (first v))))
+          (first v)
+          (do
+            (log/info "resolved container name to" v)
+            v))))
 
 (defn resolve-subscription-id [_]
   (as-> ^{:out :string} ($ az account list) v
@@ -50,6 +53,7 @@
         (:id v)
         (try
           (UUID/fromString v)
+          (log/info "resovled subscription id to" v)
           v
           (catch Exception e
             (assert false "could not resolve subscription id!")))))
