@@ -122,7 +122,7 @@
   (.decode (Base64/getMimeDecoder) ^String str-chunk))
 
 (defn encode [byte-chunk]
-  (.encode (Base64/getMimeEncoder) ^"[B" byte-chunk))
+  (.encodeToString (Base64/getMimeEncoder) ^"[B" byte-chunk))
 
 (defn add-close-handlers [local remote]
   (s/on-closed
