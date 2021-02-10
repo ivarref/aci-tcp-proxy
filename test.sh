@@ -22,6 +22,8 @@ echo "echo server ready!"
 echo "#!/usr/bin/java --source 11" > Proxy
 cat src/Proxy.java >> Proxy
 chmod +x ./Proxy
-echo "hello world" | base64 | ./Proxy | base64 --decode > out.txt
+echo "hello world" | base64 | PROXY_REMOTE_HOST=127.0.0.1 PROXY_REMOTE_PORT=7777 ./Proxy | base64 --decode > out.txt
+cat out.txt
 
 kill $(cat ./.echo-server.pid) || true
+rm ./.echo-server.pid

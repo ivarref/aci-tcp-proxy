@@ -13,14 +13,15 @@ public class Proxy {
 
     public static void main(String[] args) {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
-             BufferedWriter out = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
-             OutputStream toSocket = new BufferedOutputStream(sock.getOutputStream());
-             InputStream fromSocket = new BufferedInputStream(sock.getInputStream())) {
+             BufferedWriter out = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
             final AtomicBoolean running = new AtomicBoolean(true);
 
-            String host = in.readLine();
-            String port = in.readLine();
-            try (Socket sock = new Socket(host, Integer.parseInt(port))) {
+            String host = System.getenv("PROXY_REMOTE_HOST") != null ? System.getenv("PROXY_REMOTE_HOST") : in.readLine();
+            String port = System.getenv("PROXY_REMOTE_PORT") != null ? System.getenv("PROXY_REMOTE_PORT") : in.readLine();
+
+            try (Socket sock = new Socket(host, Integer.parseInt(port));
+                 OutputStream toSocket = new BufferedOutputStream(sock.getOutputStream());
+                 InputStream fromSocket = new BufferedInputStream(sock.getInputStream())) {
                 debug("starting AciTcpProxy ...");
 
                 Thread readStdin = new Thread() {
