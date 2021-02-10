@@ -12,7 +12,7 @@ public class Proxy {
 
     static File logFile = null;
 
-    public static void debug(String s) {
+    public static synchronized void debug(String s) {
         try {
             s = s + "\n";
             Files.write(Paths.get(logFile.getAbsolutePath()), s.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
