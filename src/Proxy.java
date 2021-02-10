@@ -14,6 +14,7 @@ public class Proxy {
 
     public static synchronized void debug(String s) {
         try {
+//            System.err.println(s);
             s = s + "\n";
             Files.write(Paths.get(logFile.getAbsolutePath()), s.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
         }catch (IOException e) {
@@ -21,56 +22,34 @@ public class Proxy {
         }
     }
 
-    public static String getOpt(String envKey) throws IOException {
+    public static String getOpt(String envKey, BufferedReader bufIn) throws IOException {
         String v = System.getenv(envKey);
         if (v == null) {
             v = "";
         }
         v = v.trim();
         if (v.equalsIgnoreCase("")) {
-            v = readLine();
-            if (v == null) {
-                debug("ERROR: got null for " +envKey);
-                throw new RuntimeException("got null for " + envKey);
-            }
-            v = v.trim();
+            v = bufIn.readLine().trim();
             debug("using >" + v + "< for " + envKey + " from remote");
         }
         return v;
     }
 
-    private static final BufferedReader bufStdin = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
-
-    public static String readLine() throws IOException {
-        if (System.console() != null) {
-            char[] chars = System.console().readPassword();
-            if (chars == null) {
-                return null;
-            } else {
-                String v = new String(chars);
-                return v;
-            }
-        } else {
-            return bufStdin.readLine();
-        }
-    }
-
-    public static void main(String[] args) throws IOException {
-        logFile = File.createTempFile("proxy-", ".log");
-        logFile.deleteOnExit();
-
-        debug("AciTcpProxy starting ...");
-        try (BufferedWriter out = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
+    public static void main(String[] args) {
+        try (BufferedReader bufIn = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+             BufferedWriter out = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
             final AtomicBoolean running = new AtomicBoolean(true);
 
+            logFile = File.createTempFile("proxy-", ".log");
+            logFile.deleteOnExit();
 
             Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
                 debug("uncaught exception on thread: " + t.getName());
                 debug("uncaught exception message was: " + e.getMessage());
             });
 
-            String host = getOpt("PROXY_REMOTE_HOST");
-            String port = getOpt("PROXY_REMOTE_PORT");
+            String host = getOpt("PROXY_REMOTE_HOST", bufIn);
+            String port = getOpt("PROXY_REMOTE_PORT", bufIn);
 
             try (Socket sock = new Socket(host, Integer.parseInt(port));
                  OutputStream toSocket = new BufferedOutputStream(sock.getOutputStream());
@@ -80,7 +59,7 @@ public class Proxy {
                 Thread readStdin = new Thread() {
                     public void run() {
                         try {
-                            readStdinLoop(running, toSocket);
+                            readStdinLoop(running, bufIn, toSocket);
                         } catch (Throwable t) {
                             debug("error in stdin read loop: " + t.getMessage());
                         }
@@ -111,11 +90,11 @@ public class Proxy {
         }
     }
 
-    private static void readStdinLoop(AtomicBoolean running, OutputStream toSocket) throws IOException {
+    private static void readStdinLoop(AtomicBoolean running, BufferedReader in, OutputStream toSocket) throws IOException {
         StringBuilder sb = new StringBuilder();
         final Base64.Decoder decoder = Base64.getMimeDecoder();
         while (running.get()) {
-            String line = readLine();
+            String line = in.readLine();
             if (line == null || line.trim().equals("")) {
                 byte[] byteChunk = decoder.decode(sb.toString());
                 toSocket.write(byteChunk);
