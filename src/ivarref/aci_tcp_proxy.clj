@@ -162,13 +162,18 @@
 (defn proxy-handler [local remote]
   (log/info "setting up proxy between local socket and remote websocket")
   (add-close-handlers local remote)
-  (let [consume-byte! (fn [byte-str]
+  (let [send-count (atom 0)
+        consume-byte! (fn [byte-str]
                         (if (= 8 (count byte-str))
                           (do
-                            (log/info "sending byte back to local client!")
+                            (log/debug "sending byte back to local client!")
                             (if @(s/put! local (byte-array [(parse-byte byte-str)]))
-                              (log/info "sent back a single byte!")
-                              (log/error "failed to sent back a single byte!")))
+                              (do
+                                (let [cnt (swap! send-count inc)]
+                                  (when (= 0 (mod cnt 1024))
+                                    (log/info "sent" cnt "bytes to local client")))
+                                (log/debug "sent back a single byte!"))
+                              (log/error "failed to send back a single byte!")))
                           (do
                             (log/warn "skipping incomplete byte consume!"))))]
     (s/consume
@@ -199,7 +204,7 @@
                            (log/debug "dropping" n)
                            o)
                          (let [o (str o n)]
-                           (log/info "consuming" n)
+                           (log/debug "consuming" n)
                            (if (= 8 (count o))
                              (do
                                (consume-byte! o)
