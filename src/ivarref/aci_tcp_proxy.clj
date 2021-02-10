@@ -137,6 +137,29 @@
       (log/info "remote closed connection")
       (s/close! local))))
 
+(defn parse-byte [s]
+  (when (string? s)
+    (-> s
+        (str/replace "$" "0")
+        (str/replace "!" "1")
+        (Integer/parseInt 2)
+        (.byteValue))))
+
+(comment
+  (let [check " !abcæøåðÿ"
+        byt (seq (.getBytes check StandardCharsets/ISO_8859_1))]
+    (doseq [byt byt]
+      (let [bin-str (str/replace
+                      (format "%8s" (Integer/toBinaryString (bit-and byt 0xff)))
+                      " "
+                      "0")
+            parsed (parse-byte (-> bin-str
+                                   (str/replace "0" "$")
+                                   (str/replace "1" "!")))]
+        (assert (= parsed byt))
+        (println bin-str byt)))))
+
+
 (defn proxy-handler [local remote]
   (log/info "setting up proxy between local socket and remote websocket")
   (add-close-handlers local remote)
@@ -149,7 +172,11 @@
                                       (log/error "could not send to local client")))
                                   (catch Exception e
                                     (log/error "failed to put! string-chunk: " (ex-message e))
-                                    (log/error "string-chunk:\n" (pr-str str-chunk)))))]
+                                    (log/error "string-chunk:\n" (pr-str str-chunk)))))
+        consume-byte! (fn [byte-str]
+                        (when (= 8 (count byte-str))
+                          (log/info "sending byte back to local client!")
+                          () (Integer/parseInt byte-str 2)))]
 
     (s/consume
       (fn [byte-chunk]
@@ -173,15 +200,21 @@
                              (do (log/error "unhandled type:" (class x))
                                  (log/error "x:" x)
                                  (throw (ex-info "unhandled type" {:x x}))))))
-           (s/reduce (fn [[prev o] n]
-                       (log/info (pr-str "consume from remote..." n))
-                       (if (and (= \return prev) (= \newline n))
-                         (do (consume-base64-chunk! [n o])
-                             [n ""])
-                         [n (str o n)]))
-                     ["" ""])
+           (s/reduce (fn [o n]
+                       (if (not (contains? #{\! \$} n))
+                         (do
+                           (log/info "dropping" n)
+                           o)
+                         (let [o (str o n)]
+                           (log/info "consuming" n)
+                           (if (= 8 (count o))
+                             (do
+                               (consume-byte! o)
+                               "")
+                             o))))
+                     "")
            (deref)
-           (consume-base64-chunk!))
+           (consume-byte!))
       (log/info "remote is drained, closing")
       (s/close! local))))
 
