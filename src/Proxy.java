@@ -11,9 +11,13 @@ public class Proxy {
 
     static File logFile = null;
 
+    static boolean development = new File(".").getAbsolutePath().contains("/home/ire");
+
     public static synchronized void debug(String s) {
         try {
-//            System.err.println(s);
+            if (development) {
+                System.err.println(s);
+            }
             s = s + "\n";
             Files.write(Paths.get(logFile.getAbsolutePath()), s.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
         }catch (IOException e) {
@@ -35,6 +39,7 @@ public class Proxy {
     }
 
     public static void main(String[] args) {
+        long startTime = System.currentTimeMillis();
         try (BufferedReader bufIn = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
              BufferedWriter out = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
             final AtomicBoolean running = new AtomicBoolean(true);
@@ -85,7 +90,8 @@ public class Proxy {
         } catch (Throwable t) {
             debug("Unexpected exception in AciTcpProxy. Message: " + t.getMessage());
         } finally {
-            debug("AciTcpProxy exiting...");
+            long spentTime = System.currentTimeMillis() - startTime;
+            debug("AciTcpProxy exiting... Spent " + spentTime + " ms");
         }
     }
 

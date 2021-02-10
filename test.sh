@@ -24,7 +24,7 @@ cat src/Proxy.java >> Proxy
 chmod +x ./Proxy
 
 PAYLOAD=$(printf "hello\ndear\nworld!" | base64)
-printf "localhost\n7777\n$PAYLOAD" | ./Proxy
+printf "localhost\n7777\n$PAYLOAD" | ./Proxy | sed 's/\$/0/g' | sed 's/!/1/g' | tr -d " \t\n\r" | perl -lpe '$_=pack"B*",$_'
 
 #cp -fv Proxy $HOME/code/learn/ire-test/src/.
 
