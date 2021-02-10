@@ -29,6 +29,11 @@ public class Proxy {
             logFile = File.createTempFile("proxy-", ".log");
             logFile.deleteOnExit();
 
+            Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+                debug("uncaught exception on thread " + t.getName());
+                debug("uncaught exception message was: " + e.getMessage());
+            });
+
             String host = System.getenv("PROXY_REMOTE_HOST") != null ? System.getenv("PROXY_REMOTE_HOST") : in.readLine();
             String port = System.getenv("PROXY_REMOTE_PORT") != null ? System.getenv("PROXY_REMOTE_PORT") : in.readLine();
 
