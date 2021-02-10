@@ -146,6 +146,17 @@
         (.byteValue))))
 
 (comment
+  (let [data (str/join (repeat (* 80 3) "a"))
+        encoder (Base64/getMimeEncoder)
+        decoder (Base64/getMimeDecoder)
+        enc (.encodeToString encoder (.getBytes data StandardCharsets/UTF_8))
+        lines (str/split-lines enc)
+        decs (String.
+               (.decode decoder (str/join "\n" lines))
+               StandardCharsets/UTF_8)]
+    (= decs data)))
+
+(comment
   (let [check " !abcæøåðÿ"
         byt (seq (.getBytes check StandardCharsets/ISO_8859_1))]
     (doseq [byt byt]
