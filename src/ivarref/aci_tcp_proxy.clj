@@ -10,7 +10,8 @@
             [manifold.stream :as s]
             [byte-streams :as bs])
   (:import (java.util UUID Base64)
-           (java.net InetSocketAddress)))
+           (java.net InetSocketAddress)
+           (java.nio.charset StandardCharsets)))
 
 (defn pretty-map [m]
   (walk/postwalk
@@ -136,6 +137,12 @@
       (log/info "remote closed connection")
       (s/close! local))))
 
+(defn bytes? [x]
+  (if (nil? x)
+    false
+    (= (Class/forName "[B")
+       (.getClass x))))
+
 (defn proxy-handler [local remote]
   (log/info "setting up proxy between local socket and remote websocket")
   (add-close-handlers local remote)
@@ -161,7 +168,17 @@
     (future
       (->> remote
            (s/->source)
-           (s/mapcat seq)
+           (s/mapcat (fn [x]
+                       (cond (string? x)
+                             (seq x)
+
+                             (bytes? x)
+                             (seq (String. ^"[B" x StandardCharsets/UTF_8))
+
+                             :else
+                             (do (log/error "unhandled type:" (class x))
+                                 (log/error "x:" x)
+                                 (throw (ex-info "unhandled type" {:x x}))))))
            (s/reduce (fn [[prev o] n]
                        (log/info (pr-str "consume from remote..." n))
                        (if (and (= \return prev) (= \newline n))
