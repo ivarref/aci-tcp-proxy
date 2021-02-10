@@ -104,19 +104,18 @@
         (log/error "got http status code" (:status resp))
         (log/error "http body:\n" (-> resp :body bs/to-string))
         nil)
-      (do
-        (log/info "connecting to websocket...")
-        (let [{:keys [webSocketUri password] :as body}
-              (-> resp
-                  :body
-                  bs/to-string
-                  (json/decode keyword))
-              sock @(http/websocket-client webSocketUri)]
-          (log/info "entering password ...")
-          @(s/put! sock password)
-          @(s/put! sock (str remote-host "\n" remote-port "\n"))
-          (log/info "got new websocket connection for" (str remote-host ":" remote-port))
-          sock)))))
+      (let [{:keys [webSocketUri password] :as body}
+            (-> resp
+                :body
+                bs/to-string
+                (json/decode keyword))
+            _ (log/info "connecting to websocket URL" webSocketUri "...")
+            sock @(http/websocket-client webSocketUri)]
+        (log/info "entering password ...")
+        @(s/put! sock password)
+        @(s/put! sock (str remote-host "\n" remote-port "\n"))
+        (log/info "got new websocket connection for" (str remote-host ":" remote-port))
+        sock))))
 
 (defn decode [str-chunk]
   (.decode (Base64/getMimeDecoder) ^String str-chunk))
