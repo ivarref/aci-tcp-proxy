@@ -14,7 +14,7 @@ public class Proxy {
 
     public static synchronized void debug(String s) {
         try {
-            System.err.println(s);
+//            System.err.println(s);
             s = s + "\n";
             Files.write(Paths.get(logFile.getAbsolutePath()), s.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
         }catch (IOException e) {
