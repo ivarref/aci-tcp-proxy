@@ -96,17 +96,23 @@
     (fn [req] (ws-handler req))
     {:socket-address (InetSocketAddress. "127.0.0.1" 3333)}))
 
+(defn clear []
+  (.print System/out "\033[H\033[2J")
+  (.flush System/out))
+
 (comment
-  (let [ws @(http/websocket-client "ws://localhost:3333")]
-    (log/info "got websocket client!")
-    (s/on-closed
-      ws
-      (fn [& args]
-        (log/info "websocket client closed")))
-    (s/consume
-      (fn [chunk]
-        (log/info "!!! client got chunk" chunk))
-      ws)
-    (s/put! ws "Hello from websocket!")
-    (Thread/sleep 3000)
-    (s/close! ws)))
+  (do
+    (clear)
+    (let [ws @(http/websocket-client "ws://localhost:3333")]
+      (log/info "got websocket client!")
+      (s/on-closed
+        ws
+        (fn [& args]
+          (log/info "websocket client closed")))
+      (s/consume
+        (fn [chunk]
+          (log/info "!!! client got chunk" chunk))
+        ws)
+      (s/put! ws "Hello from websocket!")
+      (Thread/sleep 3000)
+      (s/close! ws))))
