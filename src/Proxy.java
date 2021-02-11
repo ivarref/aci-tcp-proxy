@@ -56,8 +56,6 @@ public class Proxy {
     }
 
     public static void main(String[] args) {
-        debug("proxy starting, development = " + development);
-
         long startTime = System.currentTimeMillis();
         try (BufferedReader bufIn = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
              BufferedWriter out = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
@@ -75,12 +73,11 @@ public class Proxy {
             String host = "127.0.0.1"; //getOpt("PROXY_REMOTE_HOST", bufIn);
             String port = "2222"; //getOpt("PROXY_REMOTE_PORT", bufIn);
 
-            debug("connecting to " + host + "@" + port + " ...");
+            debug("Proxy starting, development = " + development + ". Connecting to " + host + "@" + port + " ...");
 
             try (Socket sock = new Socket(host, Integer.parseInt(port));
                  OutputStream toSocket = new BufferedOutputStream(sock.getOutputStream());
                  InputStream fromSocket = new BufferedInputStream(sock.getInputStream())) {
-                debug("starting AciTcpProxy ...");
 
                 Thread readStdin = new Thread() {
                     public void run() {
@@ -97,7 +94,10 @@ public class Proxy {
                         try {
                             readSocketLoop(running, out, fromSocket);
                         } catch (Throwable t) {
-                            debug("error in socket read loop: " + t.getMessage());
+                            if (t.getMessage().equalsIgnoreCase("Socked closed")) {
+                                debug("error class was: " + t.getClass());
+                                debug("error in socket read loop: " + t.getMessage());
+                            }
                         }
                     }
                 };
@@ -106,7 +106,6 @@ public class Proxy {
                 readSocket.start();
 
                 readStdin.join();
-                Thread.sleep(3000);
                 readSocket.interrupt();
             }
         } catch (Throwable t) {
@@ -132,7 +131,6 @@ public class Proxy {
             }
 
             if (line == null) {
-                debug("stdin closed");
                 running.set(false);
             } else {
                 sb.append(line);

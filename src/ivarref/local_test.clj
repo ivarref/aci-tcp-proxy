@@ -63,7 +63,7 @@
   (let [ws @(http/websocket-connection req)]
     (s/on-closed
       ws
-      (fn [& args] (log/info "websocket closed")))
+      (fn [& args] (log/debug "websocket closed")))
     (log/debug "new connection for ws handler")
     (ws-proxy-redir ws)))
 
