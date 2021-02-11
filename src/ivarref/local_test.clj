@@ -30,7 +30,8 @@
     (spit "Runner" new-src)
     (check ($ chmod +x Runner))
     (log/debug "launching runner ...")
-    (let [pb (->
+    (let [start-time (System/currentTimeMillis)
+          pb (->
                (ProcessBuilder. ["/home/ire/code/infra/aci-tcp-proxy/Runner"])
                #_(.redirectError ProcessBuilder$Redirect/INHERIT))
           ^Process proc (.start pb)
@@ -43,6 +44,8 @@
         (log/debug "proxy stderr exhausted"))
       (log/info "waiting for server to emit a single line... :-)")
       (.readLine stdout)
+      (let [spent-time (- (System/currentTimeMillis) start-time)]
+        (log/info "proxy ready in" spent-time "ms"))
       (future
         (doseq [lin (line-seq stdout)]
           (consume-stdout lin))
