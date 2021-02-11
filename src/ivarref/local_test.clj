@@ -41,6 +41,8 @@
         (doseq [lin (line-seq (BufferedReader. (InputStreamReader. (.getErrorStream proc) StandardCharsets/UTF_8)))]
           (log/info "proxy:" lin))
         (log/debug "proxy stderr exhausted"))
+      (log/info "waiting for server to emit a single line... :-)")
+      (.readLine stdout)
       (future
         (doseq [lin (line-seq stdout)]
           (consume-stdout lin))

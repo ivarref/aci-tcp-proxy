@@ -81,6 +81,7 @@ public class Proxy {
             try (Socket sock = new Socket(host, Integer.parseInt(port));
                  OutputStream toSocket = new BufferedOutputStream(sock.getOutputStream());
                  InputStream fromSocket = new BufferedInputStream(sock.getInputStream())) {
+                System.out.println("READY :-)");
 
                 Thread readStdin = new Thread() {
                     public void run() {
@@ -140,9 +141,11 @@ public class Proxy {
                     line = line.replace('_', '0')
                             .replace('!', '1');
                     int b = Integer.parseInt(line, 2);
-//                    debug("wrote byte to socket");
                     try {
+                        ;
                         toSocket.write(b);
+                        debug("wrote " + counter + " bytes to socket");
+                        counter+=1;
                     } catch (Exception e) {
                         debug("writing to socket failed!: " + e.getMessage());
                         throw e;
@@ -150,7 +153,7 @@ public class Proxy {
                 }
             }
         }
-        trace("stdin loop exiting");
+        debug("stdin loop exiting");
     }
 
     private static void readSocketLoop(AtomicBoolean running, BufferedWriter out, InputStream fromSocket) throws IOException {
