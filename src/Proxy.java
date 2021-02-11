@@ -142,14 +142,15 @@ public class Proxy {
                             .replace('!', '1');
                     int b = Integer.parseInt(line, 2);
                     try {
-                        ;
                         toSocket.write(b);
                         counter+=1;
-                        debug("wrote " + counter + " bytes to socket");
                     } catch (Exception e) {
                         debug("writing to socket failed!: " + e.getMessage());
                         throw e;
                     }
+                } else if (line.equalsIgnoreCase("$")) {
+                    debug("wrote chunk of length " + counter + " to socket");
+                    counter = 0;
                 }
             }
         }

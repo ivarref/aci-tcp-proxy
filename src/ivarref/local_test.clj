@@ -93,6 +93,7 @@
                              (str/replace "1" "!"))]
         (.append sb byte-bin-str)
         (.append sb "\n")))
+    (.append sb "$\n")
     (.toString sb)))
 
 (comment
