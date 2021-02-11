@@ -48,12 +48,12 @@
           stdout (BufferedReader. (InputStreamReader. (.getInputStream proc) StandardCharsets/UTF_8))]
       (future
         (doseq [lin (line-seq (BufferedReader. (InputStreamReader. (.getErrorStream proc) StandardCharsets/UTF_8)))]
-          (log/info "stderr:" lin))
-        (log/debug "remote stderr exhausted"))
+          (log/info "proxy:" lin))
+        (log/debug "proxy stderr exhausted"))
       (future
         (doseq [lin (line-seq stdout)]
           (consume-stdout lin))
-        (log/debug "remote stdout exhausted"))
+        (log/debug "proxy stdout exhausted"))
       {:in in})))
 
 (comment
@@ -97,15 +97,16 @@
     {:socket-address (InetSocketAddress. "127.0.0.1" 3333)}))
 
 (comment
-  (let [conn @(http/websocket-client "ws://localhost:3333")]
+  (let [ws @(http/websocket-client "ws://localhost:3333")]
     (log/info "got websocket client!")
     (s/on-closed
-      conn
+      ws
       (fn [& args]
         (log/info "websocket client closed")))
     (s/consume
       (fn [chunk]
-        (log/info "client got chunk" chunk))
-      conn)
+        (log/info "!!! client got chunk" chunk))
+      ws)
+    (s/put! ws "Hello from websocket!")
     (Thread/sleep 3000)
-    (s/close! conn)))
+    (s/close! ws)))
