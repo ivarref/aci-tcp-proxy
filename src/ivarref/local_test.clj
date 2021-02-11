@@ -34,29 +34,35 @@
       (echo-handler s info))
     {:socket-address (InetSocketAddress. "127.0.0.1" 2222)}))
 
-(defn launch-java-file [f]
+(defn launch-java-file [f stdout-line-cb]
   (let [new-src (str "#!/usr/bin/java --source 11\n\n" (slurp f))]
     (spit "Runner" new-src)
     (check ($ chmod +x Runner))
     (log/info "launching runner ...")
     (let [pb (->
-               (ProcessBuilder. ["/home/ire/code/infra/aci-tcp-proxy/Runner"])
-               #_(.redirectError ProcessBuilder$Redirect/INHERIT))
+               (ProcessBuilder. ["/home/ire/code/infra/aci-tcp-proxy/Runner"]))
+               ;(.redirectError ProcessBuilder$Redirect/INHERIT))
           ^Process proc (.start pb)
           _ (log/info "launching runner ... OK")
           in (BufferedWriter. (OutputStreamWriter. (.getOutputStream proc) StandardCharsets/UTF_8))
-          stdout (line-seq (BufferedReader. (InputStreamReader. (.getInputStream proc) StandardCharsets/UTF_8)))
-          stderr (line-seq (BufferedReader. (InputStreamReader. (.getErrorStream proc) StandardCharsets/UTF_8)))]
+          stdout (BufferedReader. (InputStreamReader. (.getInputStream proc) StandardCharsets/UTF_8))
+          stderr (BufferedReader. (InputStreamReader. (.getErrorStream proc) StandardCharsets/UTF_8))]
       (future
-        (doseq [lin stderr]
-          (log/info "remote stderr:" lin)))
-      {:stdout stdout
-       :in     in
-       :proc   proc})))
+        (doseq [lin (line-seq stderr)]
+          (log/info "remote stderr:" lin))
+        (log/info "remote stderr exhausted"))
+      (future
+        (doseq [lin (line-seq stdout)]
+          (stdout-line-cb lin))
+        (log/info "remote stdout exhausted"))
+      {:in in})))
 
 (comment
-  (let [v (launch-java-file "src/Hello.java")]
-    (log/info "launch java returned" v)))
+  (let [{:keys [in]} (launch-java-file "src/Hello.java")]
+    (log/info "launch java returned")
+    (Thread/sleep 1000)
+    (.close in)))
+
 
 (defn ws-proxy-redir [ws]
   (log/info "launching proxy instance ...")
