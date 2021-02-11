@@ -11,7 +11,7 @@ public class Proxy {
 
     static File logFile = null;
 
-    static boolean development = true; //new File(".").getAbsolutePath().contains("/home/ire");
+    static boolean development = new File(".").getAbsolutePath().contains("/aci-tcp-proxy/");
 
     static Socket logSocket = null;
     static BufferedWriter writer = null;
@@ -56,7 +56,7 @@ public class Proxy {
     }
 
     public static void main(String[] args) {
-        debug("proxy starting");
+        debug("proxy starting, development = " + development);
 
         long startTime = System.currentTimeMillis();
         try (BufferedReader bufIn = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
@@ -73,7 +73,7 @@ public class Proxy {
             });
 
             String host = "127.0.0.1"; //getOpt("PROXY_REMOTE_HOST", bufIn);
-            String port = "2222"; getOpt("PROXY_REMOTE_PORT", bufIn);
+            String port = "2222"; //getOpt("PROXY_REMOTE_PORT", bufIn);
 
             debug("connecting to " + host + "@" + port + " ...");
 
