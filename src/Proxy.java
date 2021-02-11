@@ -142,6 +142,7 @@ public class Proxy {
             if (line == null) {
                 running.set(false);
             } else {
+                debug("received byte");
                 line = line.trim();
                 if (line.length() == 8) {
                     line = line.replace('_', '0')
@@ -149,7 +150,6 @@ public class Proxy {
                     int b = Integer.parseInt(line, 2);
                     try {
                         toSocket.write(b);
-                        toSocket.flush();
                         counter += 1;
                     } catch (Exception e) {
                         debug("writing to socket failed!: " + e.getMessage());
