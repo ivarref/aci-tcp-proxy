@@ -11,7 +11,7 @@ public class Hello {
         while (true) {
             String line = in.readLine();
             if (line == null) break;
-//            System.out.println("hello got: " + line);
+            System.out.println("Hello got: >" + line + "< from stdin");
         }
         System.err.println("readLine loop done");
     }

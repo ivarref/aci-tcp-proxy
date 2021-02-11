@@ -49,24 +49,26 @@
           stderr (BufferedReader. (InputStreamReader. (.getErrorStream proc) StandardCharsets/UTF_8))]
       (future
         (doseq [lin (line-seq stderr)]
-          (log/info "remote stderr:" lin))
-        (log/info "remote stderr exhausted"))
+          (log/info "stderr:" lin))
+        (log/debug "remote stderr exhausted"))
       (future
         (doseq [lin (line-seq stdout)]
           (stdout-line-cb lin))
-        (log/info "remote stdout exhausted"))
+        (log/debug "remote stdout exhausted"))
       {:in in})))
 
 (comment
-  (let [{:keys [in]} (launch-java-file "src/Hello.java")]
+  (let [{:keys [in]} (launch-java-file "src/Hello.java"
+                                       (fn [lin] (log/info lin)))]
     (log/info "launch java returned")
+    (.write in "Hello From Clojure\n")
     (Thread/sleep 1000)
     (.close in)))
 
 
 (defn ws-proxy-redir [ws]
   (log/info "launching proxy instance ...")
-  (let [{:keys [stdout]} (launch-java-file "src/Proxy.java")]
+  (let [{:keys [stdout]} (launch-java-file "src/Proxy.java" identity)]
     (log/info "launching proxy instance ... OK!")
     (future
       (doseq [lin stdout]
