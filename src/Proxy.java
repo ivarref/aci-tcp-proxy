@@ -144,8 +144,8 @@ public class Proxy {
                     try {
                         ;
                         toSocket.write(b);
-                        debug("wrote " + counter + " bytes to socket");
                         counter+=1;
+                        debug("wrote " + counter + " bytes to socket");
                     } catch (Exception e) {
                         debug("writing to socket failed!: " + e.getMessage());
                         throw e;
