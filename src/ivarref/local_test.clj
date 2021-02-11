@@ -42,14 +42,6 @@
         (log/debug "proxy stdout exhausted"))
       {:in in})))
 
-(comment
-  (let [{:keys [in]} (launch-java-file
-                       "src/Hello.java"
-                       {:consume-stdout (fn [lin] (log/info "got stdout:" lin))})]
-    (.write in "Hello From Clojure\n")
-    (Thread/sleep 1000)
-    (.close in)))
-
 (defn ws-proxy-redir [ws]
   (log/debug "launching proxy instance ...")
   (let [{:keys [in]} (launch-java-file "src/Proxy.java"
@@ -101,3 +93,13 @@
       (s/put! ws "Hello from websocket!")
       (Thread/sleep 3000)
       (s/close! ws))))
+
+
+
+(comment
+  (let [{:keys [in]} (launch-java-file
+                       "src/Hello.java"
+                       {:consume-stdout (fn [lin] (log/info "got stdout:" lin))})]
+    (.write in "Hello From Clojure\n")
+    (Thread/sleep 1000)
+    (.close in)))
