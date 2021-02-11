@@ -122,9 +122,9 @@
           (log/info "!!! client got chunk" chunk))
         ws)
       @(s/put! ws (ws-enc (.getBytes "Hello from websocket!" StandardCharsets/UTF_8)))
-      (log/info "ws client OK put"))))
+      (log/info "ws client OK put")
       ;(Thread/sleep 15000)
-      ;(s/close! ws))))
+      (s/close! ws))))
 
 (comment
   (let [{:keys [in]} (launch-java-file
