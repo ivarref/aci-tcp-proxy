@@ -149,12 +149,14 @@ public class Proxy {
                     int b = Integer.parseInt(line, 2);
                     try {
                         toSocket.write(b);
+                        toSocket.flush();
                         counter += 1;
                     } catch (Exception e) {
                         debug("writing to socket failed!: " + e.getMessage());
                         throw e;
                     }
                 } else if (line.equalsIgnoreCase("$")) {
+                    debug("flushing socket...");
                     toSocket.flush();
                     debug("wrote chunk of length " + counter + " to socket");
                     counter = 0;
@@ -165,7 +167,7 @@ public class Proxy {
     }
 
     private static void readSocketLoop(AtomicBoolean running, BufferedWriter out, InputStream fromSocket) throws IOException {
-        byte[] buf = new byte[1024];
+        byte[] buf = new byte[65535];
         Base64.Encoder encoder = Base64.getMimeEncoder();
         while (running.get()) {
             int read = fromSocket.read(buf);

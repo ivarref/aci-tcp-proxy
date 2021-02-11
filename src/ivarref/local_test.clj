@@ -19,8 +19,9 @@
   (s/consume
     (fn [byt]
       (assert (bytes? byt))
-      (log/info "received chunk of" (alength byt) "bytes")
-      @(s/put! s byt))
+      (log/info "echo handler received chunk of" (alength byt) "bytes")
+      (log/info "pushing back ...")
+      (s/put! s byt))
     s))
 
 (defonce
@@ -62,7 +63,7 @@
   (let [{:keys [in]} (launch-java-file "src/Proxy.java"
                                        {:consume-stdout
                                         (fn [lin]
-                                          (log/info "got line:" lin)
+                                          (log/info "ws server got line from proxy:" lin)
                                           (s/put! ws (str lin "\n")))})]
     (s/on-closed ws
                  (fn [& args]
@@ -121,9 +122,9 @@
           (log/info "!!! client got chunk" chunk))
         ws)
       @(s/put! ws (ws-enc (.getBytes "Hello from websocket!" StandardCharsets/UTF_8)))
-      (log/info "ws client OK put")
-      (Thread/sleep 15000)
-      (s/close! ws))))
+      (log/info "ws client OK put"))))
+      ;(Thread/sleep 15000)
+      ;(s/close! ws))))
 
 (comment
   (let [{:keys [in]} (launch-java-file
