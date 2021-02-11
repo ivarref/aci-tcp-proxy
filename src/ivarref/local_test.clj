@@ -74,7 +74,8 @@
         (assert (string? chunk))
         (log/info "websocket server: got byte chunk from client of length" (int (/ (count chunk)
                                                                                    9)))
-        (.write in chunk))
+        (.write in chunk)
+        (.flush in))
       ws)
     (log/debug "launching proxy instance ... OK!")))
 
