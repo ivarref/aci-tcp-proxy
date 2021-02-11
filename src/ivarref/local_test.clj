@@ -5,7 +5,7 @@
             [clojure.tools.logging :as log]
             [babashka.process :as p :refer [$ check]])
   (:import (java.net InetSocketAddress ServerSocket InetAddress)
-           (java.io InputStreamReader BufferedReader)
+           (java.io InputStreamReader BufferedReader BufferedWriter OutputStreamWriter)
            (java.nio.charset StandardCharsets)
            (java.lang ProcessBuilder$Redirect)))
 
@@ -44,19 +44,19 @@
                #_(.redirectError ProcessBuilder$Redirect/INHERIT))
           ^Process proc (.start pb)
           _ (log/info "launching runner ... OK")
-          ;in (BufferedWriter. (OutputStreamWriter. (.getOutputStream proc) StandardCharsets/UTF_8))]
-          ;stdout (line-seq (BufferedReader. (InputStreamReader. (.getInputStream proc) StandardCharsets/UTF_8)))
+          in (BufferedWriter. (OutputStreamWriter. (.getOutputStream proc) StandardCharsets/UTF_8))
+          stdout (line-seq (BufferedReader. (InputStreamReader. (.getInputStream proc) StandardCharsets/UTF_8)))
           stderr (line-seq (BufferedReader. (InputStreamReader. (.getErrorStream proc) StandardCharsets/UTF_8)))]
       (future
         (doseq [lin stderr]
           (log/info "remote stderr:" lin)))
-      #_{:stdout stdout
-         :in in})))
+      {:stdout stdout
+       :in     in
+       :proc   proc})))
 
 (comment
-  (future
-    (launch-java-file "src/Hello.java")
-    (log/info "java launcher returned")))
+  (let [v (launch-java-file "src/Hello.java")]
+    (log/info "launch java returned" v)))
 
 (defn ws-proxy-redir [ws]
   (log/info "launching proxy instance ...")
