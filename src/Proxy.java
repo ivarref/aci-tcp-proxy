@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -154,6 +155,7 @@ public class Proxy {
                         throw e;
                     }
                 } else if (line.equalsIgnoreCase("$")) {
+                    toSocket.flush();
                     debug("wrote chunk of length " + counter + " to socket");
                     counter = 0;
                 }
@@ -164,9 +166,14 @@ public class Proxy {
 
     private static void readSocketLoop(AtomicBoolean running, BufferedWriter out, InputStream fromSocket) throws IOException {
         byte[] buf = new byte[1024];
+        Base64.Encoder encoder = Base64.getMimeEncoder();
         while (running.get()) {
             int read = fromSocket.read(buf);
             if (read != 1) {
+                String chunk = encoder.encodeToString(Arrays.copyOf(buf, read));
+                out.write(chunk);
+                out.write("\n");
+                out.flush();
                 debug("got chunk of " + read + " bytes from socket");
             } else {
                 debug("read socket closed");
