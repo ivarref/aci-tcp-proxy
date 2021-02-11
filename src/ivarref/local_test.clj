@@ -8,7 +8,8 @@
   (:import (java.net InetSocketAddress)
            (java.io InputStreamReader BufferedReader BufferedWriter OutputStreamWriter)
            (java.nio.charset StandardCharsets)
-           (java.lang ProcessBuilder$Redirect)))
+           (java.lang ProcessBuilder$Redirect)
+           (java.util Base64)))
 
 (defn clear []
   (.print System/out "\033[H\033[2J")
@@ -20,7 +21,6 @@
     (fn [byt]
       (assert (bytes? byt))
       (log/info "echo handler received chunk of" (alength byt) "bytes")
-      (log/info "pushing back ...")
       (s/put! s byt))
     s))
 
@@ -64,7 +64,7 @@
                                        {:consume-stdout
                                         (fn [lin]
                                           (log/info "ws server got line from proxy:" lin)
-                                          (s/put! ws (str lin "\n")))})]
+                                          (s/put! ws (str lin "#\n")))})]
     (s/on-closed ws
                  (fn [& args]
                    (log/debug "websocket closed, closing proxy")
@@ -118,14 +118,27 @@
         ws
         (fn [& args]
           (log/debug "websocket client closed")))
-      (s/consume
-        (fn [chunk]
-          (log/info "!!! client got chunk" chunk))
-        ws)
-      @(s/put! ws (ws-enc (.getBytes "Hello from websocket!" StandardCharsets/UTF_8)))
-      (log/info "ws client OK put")
-      (future
-        (Thread/sleep 15000)
+      (let [drain (->> ws
+                       (s/->source)
+                       (s/mapcat (fn [x]
+                                   (assert (string? x))
+                                   (seq x)))
+                       (s/reduce (fn [o n]
+                                   (cond
+                                     (contains? #{\! \$} n)
+                                     o
+
+                                     (= n \#)
+                                     (let [decoded (.decode (Base64/getMimeDecoder) o)]
+                                       (log/info "ws client got" (String. decoded StandardCharsets/UTF_8))
+                                       "")
+
+                                     :else
+                                     (str o n)))
+                                 ""))]
+        @(s/put! ws (ws-enc (.getBytes "Hello world from websocket!" StandardCharsets/UTF_8)))
+        (log/info "ws client OK put")
+        @drain
         (s/close! ws)))))
 
 (comment

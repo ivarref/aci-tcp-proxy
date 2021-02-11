@@ -142,7 +142,6 @@ public class Proxy {
             if (line == null) {
                 running.set(false);
             } else {
-                debug("received byte");
                 line = line.trim();
                 if (line.length() == 8) {
                     line = line.replace('_', '0')
