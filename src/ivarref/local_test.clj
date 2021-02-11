@@ -10,7 +10,7 @@
            (java.lang ProcessBuilder$Redirect)))
 
 (defn echo-handler [s info]
-  (log/info "new connection for echo handler")
+  (log/debug "new connection for echo handler")
   (s/connect s s))
 
 (defonce
@@ -24,12 +24,12 @@
   (let [new-src (str "#!/usr/bin/java --source 11\n\n" (slurp f))]
     (spit "Runner" new-src)
     (check ($ chmod +x Runner))
-    (log/info "launching runner ...")
+    (log/debug "launching runner ...")
     (let [pb (->
                (ProcessBuilder. ["/home/ire/code/infra/aci-tcp-proxy/Runner"])
                #_(.redirectError ProcessBuilder$Redirect/INHERIT))
           ^Process proc (.start pb)
-          _ (log/info "launching runner ... OK")
+          _ (log/debug "launching runner ... OK")
           in (BufferedWriter. (OutputStreamWriter. (.getOutputStream proc) StandardCharsets/UTF_8))
           stdout (BufferedReader. (InputStreamReader. (.getInputStream proc) StandardCharsets/UTF_8))]
       (future
@@ -46,13 +46,12 @@
   (let [{:keys [in]} (launch-java-file
                        "src/Hello.java"
                        {:consume-stdout (fn [lin] (log/info "got stdout:" lin))})]
-    (log/info "launch java returned")
     (.write in "Hello From Clojure\n")
     (Thread/sleep 1000)
     (.close in)))
 
 (defn ws-proxy-redir [ws]
-  (log/info "launching proxy instance ...")
+  (log/debug "launching proxy instance ...")
   (let [{:keys [in]} (launch-java-file "src/Proxy.java"
                                        {:consume-stdout
                                         (fn [lin]
@@ -64,9 +63,9 @@
                    (.close in)))
     (s/consume
       (fn [chunk]
-        (log/info "got >" chunk "< from websocket"))
+        (log/info "websocket server: got >" chunk "< from client"))
       ws)
-    (log/info "launching proxy instance ... OK!")))
+    (log/debug "launching proxy instance ... OK!")))
 
 (defn ws-handler [req]
   (let [ws @(http/websocket-connection req)]
@@ -90,7 +89,7 @@
   (do
     (clear)
     (let [ws @(http/websocket-client "ws://localhost:3333")]
-      (log/info "got websocket client!")
+      (log/debug "got websocket client!")
       (s/on-closed
         ws
         (fn [& args]
