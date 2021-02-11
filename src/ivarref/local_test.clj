@@ -3,7 +3,8 @@
             [aleph.tcp :as tcp]
             [manifold.stream :as s]
             [clojure.tools.logging :as log]
-            [babashka.process :refer [$ check]])
+            [babashka.process :refer [$ check]]
+            [clojure.string :as str])
   (:import (java.net InetSocketAddress)
            (java.io InputStreamReader BufferedReader BufferedWriter OutputStreamWriter)
            (java.nio.charset StandardCharsets)
@@ -59,7 +60,7 @@
                    (.close in)))
     (s/consume
       (fn [chunk]
-        (log/info "websocket server: got >" chunk "< from client"))
+        (log/info "websocket server: got chunk from client of length" (count chunk)))
       ws)
     (log/debug "launching proxy instance ... OK!")))
 
@@ -77,6 +78,21 @@
     (fn [req] (ws-handler req))
     {:socket-address (InetSocketAddress. "127.0.0.1" 3333)}))
 
+(defn ws-enc [byt]
+  (assert (bytes? byt))
+  (let [sb (StringBuilder.)]
+    (doseq [b (seq byt)]
+      (let [byte-bin-str (-> (format "%8s" (Integer/toBinaryString (bit-and b 0xff)))
+                             (str/replace " " "0")
+                             (str/replace "0" "_")
+                             (str/replace "1" "!"))]
+        (.append sb byte-bin-str)
+        (.append sb "\n")))
+    (.toString sb)))
+
+(comment
+  (ws-enc (.getBytes " !abcæøåðÿ" StandardCharsets/ISO_8859_1)))
+
 (comment
   (do
     (clear)
@@ -90,7 +106,7 @@
         (fn [chunk]
           (log/info "!!! client got chunk" chunk))
         ws)
-      (s/put! ws "Hello from websocket!")
+      (s/put! ws (ws-enc (.getBytes "Hello from websocket!" StandardCharsets/UTF_8)))
       (Thread/sleep 3000)
       (s/close! ws))))
 

@@ -31,7 +31,7 @@ public class Proxy {
             }
 //            s = s + "\n";
 //            Files.write(Paths.get(logFile.getAbsolutePath()), s.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
-        }catch (IOException e) {
+        } catch (IOException e) {
             //exception handling left as an exercise for the reader
         }
     }
@@ -129,22 +129,20 @@ public class Proxy {
     }
 
     private static void readStdinLoop(AtomicBoolean running, BufferedReader in, OutputStream toSocket) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        final Base64.Decoder decoder = Base64.getMimeDecoder();
+        int counter = 0;
         while (running.get()) {
             String line = in.readLine();
-            if (line == null || line.trim().equals("")) {
-                byte[] byteChunk = decoder.decode(sb.toString());
-                toSocket.write(byteChunk);
-                toSocket.flush();
-                sb = new StringBuilder();
-            }
-
             if (line == null) {
                 running.set(false);
             } else {
-                sb.append(line);
-                sb.append("\n");
+                line = line.trim();
+                if (line.length() == 8) {
+                    line = line.replace('_', '0')
+                            .replace('!', '1');
+                    int b = Integer.parseInt(line, 2);
+                    debug("wrote byte to socket");
+                    toSocket.write(b);
+                }
             }
         }
         trace("stdin loop exiting");
@@ -155,7 +153,7 @@ public class Proxy {
         while (running.get()) {
             int read = fromSocket.read(buf);
             if (read != 1) {
-                for (int i=0; i<read; i++) {
+                for (int i = 0; i < read; i++) {
                     byte b = buf[i];
                     out.write("\n");
                     String s = String.format("%8s", Integer.toBinaryString(b & 0xFF))
