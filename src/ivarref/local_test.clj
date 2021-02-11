@@ -9,6 +9,10 @@
            (java.nio.charset StandardCharsets)
            (java.lang ProcessBuilder$Redirect)))
 
+(defn clear []
+  (.print System/out "\033[H\033[2J")
+  (.flush System/out))
+
 (defn echo-handler [s info]
   (log/debug "new connection for echo handler")
   (s/connect s s))
@@ -73,10 +77,6 @@
     (fn [req] (ws-handler req))
     {:socket-address (InetSocketAddress. "127.0.0.1" 3333)}))
 
-(defn clear []
-  (.print System/out "\033[H\033[2J")
-  (.flush System/out))
-
 (comment
   (do
     (clear)
@@ -93,8 +93,6 @@
       (s/put! ws "Hello from websocket!")
       (Thread/sleep 3000)
       (s/close! ws))))
-
-
 
 (comment
   (let [{:keys [in]} (launch-java-file
