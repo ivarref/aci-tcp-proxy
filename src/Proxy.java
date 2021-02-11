@@ -140,8 +140,13 @@ public class Proxy {
                     line = line.replace('_', '0')
                             .replace('!', '1');
                     int b = Integer.parseInt(line, 2);
-                    debug("wrote byte to socket");
-                    toSocket.write(b);
+//                    debug("wrote byte to socket");
+                    try {
+                        toSocket.write(b);
+                    } catch (Exception e) {
+                        debug("writing to socket failed!: " + e.getMessage());
+                        throw e;
+                    }
                 }
             }
         }

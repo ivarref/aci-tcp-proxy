@@ -60,7 +60,9 @@
                    (.close in)))
     (s/consume
       (fn [chunk]
-        (log/info "websocket server: got chunk from client of length" (count chunk)))
+        (assert (string? chunk))
+        (log/info "websocket server: got chunk from client of length" (count chunk))
+        (.write in chunk))
       ws)
     (log/debug "launching proxy instance ... OK!")))
 
@@ -106,8 +108,8 @@
         (fn [chunk]
           (log/info "!!! client got chunk" chunk))
         ws)
-      (s/put! ws (ws-enc (.getBytes "Hello from websocket!" StandardCharsets/UTF_8)))
-      (Thread/sleep 3000)
+      @(s/put! ws (ws-enc (.getBytes "Hello from websocket!" StandardCharsets/UTF_8)))
+      (Thread/sleep 5000)
       (s/close! ws))))
 
 (comment
