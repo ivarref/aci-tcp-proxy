@@ -106,6 +106,10 @@ public class Proxy {
                 readSocket.start();
 
                 readStdin.join();
+                try {
+                    sock.close();
+                } catch (Exception e) {
+                }
                 readSocket.join(3000);
                 if (readSocket.isAlive()) {
                     debug("failed to close read socket loop!");
