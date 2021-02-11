@@ -167,17 +167,7 @@ public class Proxy {
         while (running.get()) {
             int read = fromSocket.read(buf);
             if (read != 1) {
-                for (int i = 0; i < read; i++) {
-                    byte b = buf[i];
-                    out.write("\n");
-                    String s = String.format("%8s", Integer.toBinaryString(b & 0xFF))
-                            .replace(' ', '$')
-                            .replace('0', '$')
-                            .replace('1', '!');
-                    out.write(s);
-                    out.write("\n");
-                }
-                out.flush();
+                debug("got chunk of " + read + " bytes from socket");
             } else {
                 debug("read socket closed");
                 running.set(false);

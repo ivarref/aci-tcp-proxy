@@ -15,8 +15,13 @@
   (.flush System/out))
 
 (defn echo-handler [s info]
-  (log/debug "new connection for echo handler")
-  (s/connect s s))
+  (log/info "new connection for echo handler")
+  (s/consume
+    (fn [byt]
+      (assert (bytes? byt))
+      (log/info "received chunk of" (alength byt) "bytes")
+      @(s/put! s byt))
+    s))
 
 (defonce
   echo-server
