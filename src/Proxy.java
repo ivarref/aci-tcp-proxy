@@ -11,11 +11,21 @@ public class Proxy {
 
     static File logFile = null;
 
-    static boolean development = new File(".").getAbsolutePath().contains("/home/ire");
+    static boolean development = true; //new File(".").getAbsolutePath().contains("/home/ire");
+
+    static Socket logSocket = null;
+    static BufferedWriter writer = null;
 
     public static synchronized void debug(String s) {
         try {
             if (development) {
+                if (logSocket == null) {
+                    logSocket = new Socket("127.0.0.1", 6666);
+                    writer = new BufferedWriter(new OutputStreamWriter(logSocket.getOutputStream(), StandardCharsets.UTF_8));
+                }
+//                writer.write(s + "\n");
+//                writer.flush();
+
                 System.err.println(s);
             }
             s = s + "\n";
@@ -47,13 +57,17 @@ public class Proxy {
             logFile = File.createTempFile("proxy-", ".log");
             logFile.deleteOnExit();
 
+            debug("proxy starting");
+
             Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
                 debug("uncaught exception on thread: " + t.getName());
                 debug("uncaught exception message was: " + e.getMessage());
             });
 
-            String host = getOpt("PROXY_REMOTE_HOST", bufIn);
-            String port = getOpt("PROXY_REMOTE_PORT", bufIn);
+            String host = "127.0.0.1"; //getOpt("PROXY_REMOTE_HOST", bufIn);
+            String port = "2222"; getOpt("PROXY_REMOTE_PORT", bufIn);
+
+            debug("connecting to " + host + "@" + port + " ...");
 
             try (Socket sock = new Socket(host, Integer.parseInt(port));
                  OutputStream toSocket = new BufferedOutputStream(sock.getOutputStream());
