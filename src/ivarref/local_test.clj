@@ -51,7 +51,7 @@
                                           (s/put! ws (str lin "\n")))})]
     (s/on-closed ws
                  (fn [& args]
-                   (log/info "websocket closed, closing proxy")
+                   (log/debug "websocket closed, closing proxy")
                    (.close in)))
     (s/consume
       (fn [chunk]
@@ -64,7 +64,7 @@
     (s/on-closed
       ws
       (fn [& args] (log/info "websocket closed")))
-    (log/info "new connection for ws handler")
+    (log/debug "new connection for ws handler")
     (ws-proxy-redir ws)))
 
 (defonce
@@ -85,7 +85,7 @@
       (s/on-closed
         ws
         (fn [& args]
-          (log/info "websocket client closed")))
+          (log/debug "websocket client closed")))
       (s/consume
         (fn [chunk]
           (log/info "!!! client got chunk" chunk))
