@@ -63,7 +63,8 @@
     (s/consume
       (fn [chunk]
         (assert (string? chunk))
-        (log/info "websocket server: got chunk from client of length" (count chunk))
+        (log/info "websocket server: got chunk from client of length" (int (/ (count chunk)
+                                                                              9)))
         (.write in chunk))
       ws)
     (log/debug "launching proxy instance ... OK!")))
