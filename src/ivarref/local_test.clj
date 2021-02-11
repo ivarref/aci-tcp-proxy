@@ -66,16 +66,22 @@
     (Thread/sleep 1000)
     (.close in)))
 
+(defn consume-stdout [ws lin]
+  (s/put! ws (str lin "\n")))
 
 (defn ws-proxy-redir [ws]
   (log/info "launching proxy instance ...")
-  (let [{:keys [stdout]} (launch-java-file "src/Proxy.java" identity)]
-    (log/info "launching proxy instance ... OK!")
-    (future
-      (doseq [lin stdout]
-        (log/info "pusing stdout line" lin)
-        (s/put! ws (str lin "\n"))))))
-
+  (let [{:keys [in]} (launch-java-file "src/Proxy.java"
+                                       {:consume-stdout (partial consume-stdout ws)})]
+    (s/on-closed ws
+                 (fn [& args]
+                   (log/info "websocket closed, closing proxy")
+                   (.close in)))
+    (s/consume
+      (fn [chunk]
+        (log/info "got >" chunk "< from websocket"))
+      ws)
+    (log/info "launching proxy instance ... OK!")))
 
 (defn ws-handler [req]
   (let [ws @(http/websocket-connection req)]
