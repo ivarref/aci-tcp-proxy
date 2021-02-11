@@ -60,6 +60,8 @@ public class Proxy {
 
     public static void main(String[] args) {
         long startTime = System.currentTimeMillis();
+        AtomicBoolean okClose = new AtomicBoolean(false);
+
         try (BufferedReader bufIn = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
              BufferedWriter out = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
             final AtomicBoolean running = new AtomicBoolean(true);
@@ -117,12 +119,15 @@ public class Proxy {
                 readSocket.join(3000);
                 if (readSocket.isAlive()) {
                     debug("failed to close read socket loop!");
+                } else {
+                    okClose.set(true);
                 }
             }
         } catch (Throwable t) {
-            debug("class of unexpected exception:" + t.getClass());
-            t.printStackTrace();
-            debug("Unexpected exception in AciTcpProxy. Message: " + t.getMessage());
+            if (!(t.getMessage().equalsIgnoreCase("Socket closed") && okClose.get())) {
+                debug("class of unexpected exception: " + t.getClass());
+                debug("Unexpected exception in AciTcpProxy. Message: " + t.getMessage());
+            }
         } finally {
             long spentTime = System.currentTimeMillis() - startTime;
             debug("AciTcpProxy exiting... Spent " + spentTime + " ms");
@@ -143,7 +148,7 @@ public class Proxy {
                     int b = Integer.parseInt(line, 2);
                     try {
                         toSocket.write(b);
-                        counter+=1;
+                        counter += 1;
                     } catch (Exception e) {
                         debug("writing to socket failed!: " + e.getMessage());
                         throw e;
