@@ -41,15 +41,15 @@
     (log/info "launching runner ...")
     (let [pb (->
                (ProcessBuilder. ["/home/ire/code/infra/aci-tcp-proxy/Runner"])
-               (.redirectError ProcessBuilder$Redirect/INHERIT))
+               #_(.redirectError ProcessBuilder$Redirect/INHERIT))
           ^Process proc (.start pb)
           _ (log/info "launching runner ... OK")
           in (BufferedWriter. (OutputStreamWriter. (.getOutputStream proc) StandardCharsets/UTF_8))
           stdout (BufferedReader. (InputStreamReader. (.getInputStream proc) StandardCharsets/UTF_8))]
-      #_(future
-          (doseq [lin (line-seq (BufferedReader. (InputStreamReader. (.getErrorStream proc) StandardCharsets/UTF_8)))]
-            (log/info "stderr:" lin))
-          (log/debug "remote stderr exhausted"))
+      (future
+        (doseq [lin (line-seq (BufferedReader. (InputStreamReader. (.getErrorStream proc) StandardCharsets/UTF_8)))]
+          (log/info "stderr:" lin))
+        (log/debug "remote stderr exhausted"))
       (future
         (doseq [lin (line-seq stdout)]
           (consume-stdout lin))
@@ -64,9 +64,6 @@
     (.write in "Hello From Clojure\n")
     (Thread/sleep 1000)
     (.close in)))
-
-(defn consume-stdout [ws lin]
-  (s/put! ws (str lin "\n")))
 
 (defn ws-proxy-redir [ws]
   (log/info "launching proxy instance ...")
@@ -109,4 +106,6 @@
     (s/consume
       (fn [chunk]
         (log/info "client got chunk" chunk))
-      conn)))
+      conn)
+    (Thread/sleep 3000)
+    (s/close! conn)))

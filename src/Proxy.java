@@ -17,6 +17,7 @@ public class Proxy {
     static BufferedWriter writer = null;
 
     public static synchronized void debug(String s) {
+        System.err.println(s);
         try {
             if (development) {
                 if (logSocket == null) {
@@ -26,10 +27,10 @@ public class Proxy {
 //                writer.write(s + "\n");
 //                writer.flush();
 
-                System.err.println(s);
+                ;
             }
-            s = s + "\n";
-            Files.write(Paths.get(logFile.getAbsolutePath()), s.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
+//            s = s + "\n";
+//            Files.write(Paths.get(logFile.getAbsolutePath()), s.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
         }catch (IOException e) {
             //exception handling left as an exercise for the reader
         }
@@ -42,13 +43,21 @@ public class Proxy {
         }
         v = v.trim();
         if (v.equalsIgnoreCase("")) {
-            v = bufIn.readLine().trim();
-            debug("using >" + v + "< for " + envKey + " from remote");
+            v = bufIn.readLine();
+            if (v == null) {
+                debug("could not get any value for " + envKey + " from remote!");
+                return null;
+            } else {
+                v = v.trim();
+                debug("using >" + v + "< for " + envKey + " from remote");
+            }
         }
         return v;
     }
 
     public static void main(String[] args) {
+        debug("proxy starting");
+
         long startTime = System.currentTimeMillis();
         try (BufferedReader bufIn = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
              BufferedWriter out = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
@@ -57,7 +66,6 @@ public class Proxy {
             logFile = File.createTempFile("proxy-", ".log");
             logFile.deleteOnExit();
 
-            debug("proxy starting");
 
             Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
                 debug("uncaught exception on thread: " + t.getName());
@@ -102,6 +110,8 @@ public class Proxy {
                 readSocket.interrupt();
             }
         } catch (Throwable t) {
+            debug("class of unexpected exception:" + t.getClass());
+            t.printStackTrace();
             debug("Unexpected exception in AciTcpProxy. Message: " + t.getMessage());
         } finally {
             long spentTime = System.currentTimeMillis() - startTime;
