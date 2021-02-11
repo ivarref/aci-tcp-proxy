@@ -40,17 +40,16 @@
     (check ($ chmod +x Runner))
     (log/info "launching runner ...")
     (let [pb (->
-               (ProcessBuilder. ["/home/ire/code/infra/aci-tcp-proxy/Runner"]))
-          ;(.redirectError ProcessBuilder$Redirect/INHERIT))
+               (ProcessBuilder. ["/home/ire/code/infra/aci-tcp-proxy/Runner"])
+               (.redirectError ProcessBuilder$Redirect/INHERIT))
           ^Process proc (.start pb)
           _ (log/info "launching runner ... OK")
           in (BufferedWriter. (OutputStreamWriter. (.getOutputStream proc) StandardCharsets/UTF_8))
-          stdout (BufferedReader. (InputStreamReader. (.getInputStream proc) StandardCharsets/UTF_8))
-          stderr (BufferedReader. (InputStreamReader. (.getErrorStream proc) StandardCharsets/UTF_8))]
-      (future
-        (doseq [lin (line-seq stderr)]
-          (log/info "stderr:" lin))
-        (log/debug "remote stderr exhausted"))
+          stdout (BufferedReader. (InputStreamReader. (.getInputStream proc) StandardCharsets/UTF_8))]
+      #_(future
+          (doseq [lin (line-seq (BufferedReader. (InputStreamReader. (.getErrorStream proc) StandardCharsets/UTF_8)))]
+            (log/info "stderr:" lin))
+          (log/debug "remote stderr exhausted"))
       (future
         (doseq [lin (line-seq stdout)]
           (consume-stdout lin))
@@ -72,7 +71,10 @@
 (defn ws-proxy-redir [ws]
   (log/info "launching proxy instance ...")
   (let [{:keys [in]} (launch-java-file "src/Proxy.java"
-                                       {:consume-stdout (partial consume-stdout ws)})]
+                                       {:consume-stdout
+                                        (fn [lin]
+                                          (log/info "got line:" lin)
+                                          (s/put! ws (str lin "\n")))})]
     (s/on-closed ws
                  (fn [& args]
                    (log/info "websocket closed, closing proxy")
