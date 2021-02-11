@@ -3,8 +3,8 @@
             [aleph.tcp :as tcp]
             [manifold.stream :as s]
             [clojure.tools.logging :as log]
-            [babashka.process :as p :refer [$ check]])
-  (:import (java.net InetSocketAddress ServerSocket InetAddress)
+            [babashka.process :refer [$ check]])
+  (:import (java.net InetSocketAddress)
            (java.io InputStreamReader BufferedReader BufferedWriter OutputStreamWriter)
            (java.nio.charset StandardCharsets)
            (java.lang ProcessBuilder$Redirect)))
@@ -12,20 +12,6 @@
 (defn echo-handler [s info]
   (log/info "new connection for echo handler")
   (s/connect s s))
-
-#_(defonce
-    log-server
-    (future
-      (let [ss (ServerSocket. 6666 10 (InetAddress/getLoopbackAddress))]
-        (loop []
-          (log/info "log server waiting for connection")
-          (let [sock (.accept ss)]
-            (log/info "got new connection on log server...")
-            (future
-              (let [lines (line-seq (BufferedReader. (InputStreamReader. (.getInputStream sock) StandardCharsets/UTF_8)))]
-                (doseq [lin lines]
-                  (log/info "line from proxy:" lin))))
-            (recur))))))
 
 (defonce
   echo-server
