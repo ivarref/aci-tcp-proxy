@@ -36,6 +36,9 @@ public class Proxy {
         }
     }
 
+    public static synchronized void trace(String s) {
+    }
+
     public static String getOpt(String envKey, BufferedReader bufIn) throws IOException {
         String v = System.getenv(envKey);
         if (v == null) {
@@ -144,7 +147,7 @@ public class Proxy {
                 sb.append("\n");
             }
         }
-        debug("stdin loop exiting");
+        trace("stdin loop exiting");
     }
 
     private static void readSocketLoop(AtomicBoolean running, BufferedWriter out, InputStream fromSocket) throws IOException {
