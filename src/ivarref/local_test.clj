@@ -130,7 +130,7 @@
 
                                      (= n \#)
                                      (let [decoded (.decode (Base64/getMimeDecoder) o)]
-                                       (log/info "ws client got" (String. decoded StandardCharsets/UTF_8))
+                                       (log/info "ws client got >" (String. decoded StandardCharsets/UTF_8) "<")
                                        "")
 
                                      :else
