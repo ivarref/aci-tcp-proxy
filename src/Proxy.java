@@ -60,19 +60,20 @@ public class Proxy {
             logFile.deleteOnExit();
 
             loadConfig(in);
-            for (Object key : props.keySet()) {
-                debug("config '" + key + "' => '" + props.getProperty((String)key) + "'");
-            }
+
+//            for (Object key : props.keySet()) {
+//                debug("config '" + key + "' => '" + props.getProperty((String)key) + "'");
+//            }
 
             Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
                 debug("uncaught exception on thread: " + t.getName());
                 debug("uncaught exception message was: " + e.getMessage());
             });
 
-            String host = "127.0.0.1"; //getOpt("PROXY_REMOTE_HOST", bufIn);
-            String port = "2222"; //getOpt("PROXY_REMOTE_PORT", bufIn);
+            String host = props.getProperty("host", "localhost");
+            String port = props.getProperty("port", "7777");
 
-            trace("Proxy starting, development = " + development + ". Connecting to " + host + "@" + port + " ...");
+            debug("Proxy starting, development = " + development + ". Connecting to " + host + "@" + port + " ...");
 
             try (Socket sock = new Socket(host, Integer.parseInt(port));
                  OutputStream toSocket = new BufferedOutputStream(sock.getOutputStream());
