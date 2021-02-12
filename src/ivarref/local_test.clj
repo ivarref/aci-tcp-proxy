@@ -6,7 +6,7 @@
             [babashka.process :refer [$ check]]
             [clojure.string :as str]
             [ivarref.ws-server])
-  (:import(java.nio.charset StandardCharsets)
+  (:import (java.nio.charset StandardCharsets)
            (java.util Base64)))
 
 (defn clear []
@@ -25,6 +25,20 @@
         (.append sb "\n")))
     (.append sb "$\n")
     (.toString sb)))
+
+(defn ws-map [m]
+  (assert (map? m))
+  (-> (reduce-kv (fn [o k v]
+                   (str o
+                        (if (keyword? k) (name k) (str k))
+                        "="
+                        (str v)
+                        "\n"))
+                 ""
+                 m)
+      (str/trim)
+      (.getBytes StandardCharsets/UTF_8)
+      (ws-enc)))
 
 (comment
   (ws-enc (.getBytes " !abcæøåðÿ" StandardCharsets/ISO_8859_1)))
@@ -82,39 +96,3 @@
 (comment
   (test-round-trip (.getBytes (str/join "\n" (repeat 100 "Hello World !abcæøåðÿ!"))
                               StandardCharsets/UTF_8)))
-
-
-(defn run-test []
-  (clear)
-  (let [ws @(http/websocket-client "ws://localhost:3333")]
-    (log/debug "got websocket client!")
-    (s/on-closed
-      ws
-      (fn [& args]
-        (log/debug "websocket client closed")))
-    (let [drain (->> ws
-                     (s/->source)
-                     (s/mapcat (fn [x]
-                                 (assert (string? x))
-                                 (seq x)))
-                     (s/reduce (fn [o n]
-                                 (cond
-                                   (contains? #{\! \$} n)
-                                   o
-
-                                   (= n \#)
-                                   (let [decoded (.decode (Base64/getMimeDecoder) o)]
-                                     (log/info "ws client got >" (String. decoded StandardCharsets/UTF_8) "<")
-                                     "")
-
-                                   :else
-                                   (str o n)))
-                               ""))]
-      @(s/put! ws (ws-enc (.getBytes " !abcæøåðÿ" StandardCharsets/UTF_8)))
-      (log/info "ws client OK put")
-      (log/info "waiting for socket to close..."))))
-      ;@drain
-      ;(s/close! ws))))
-
-(comment
-  (run-test))
