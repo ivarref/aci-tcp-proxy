@@ -32,6 +32,43 @@
 (comment
   (ws-enc (.getBytes " !abcæøåðÿ" StandardCharsets/ISO_8859_1)))
 
+(defn test-round-trip [byt]
+  (assert (bytes? byt))
+  (let [p (promise)
+        ws @(http/websocket-client "ws://localhost:3333")]
+    (log/debug "got websocket client!")
+    (s/on-closed
+      ws
+      (fn [& args]
+        (deliver p nil)
+        (log/debug "websocket client closed")))
+    (let [drain (->> ws
+                     (s/->source)
+                     (s/mapcat (fn [x]
+                                 (assert (string? x))
+                                 (seq x)))
+                     (s/reduce (fn [o n]
+                                 (cond
+                                   (contains? #{\! \$} n)
+                                   o
+
+                                   (= n \#)
+                                   (let [decoded (.decode (Base64/getMimeDecoder) ^String o)]
+                                     (deliver p decoded)
+                                     "")
+
+                                   :else
+                                   (str o n)))
+                               ""))]
+      @(s/put! ws (ws-enc byt))
+      (let [res @promise]
+        @(s/close! ws)
+        (= (seq res) (seq byt))))))
+
+(comment
+  (test-round-trip (.getBytes "Hello World!" StandardCharsets/UTF_8)))
+
+
 (defn run-test []
   (clear)
   (let [ws @(http/websocket-client "ws://localhost:3333")]
@@ -58,7 +95,7 @@
                                    :else
                                    (str o n)))
                                ""))]
-      @(s/put! ws (ws-enc (.getBytes "Hello world from websocket!" StandardCharsets/UTF_8)))
+      @(s/put! ws (ws-enc (.getBytes " !abcæøåðÿ" StandardCharsets/UTF_8)))
       (log/info "ws client OK put")
       (log/info "waiting for socket to close..."))))
       ;@drain
