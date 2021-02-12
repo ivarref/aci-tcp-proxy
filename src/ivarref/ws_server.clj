@@ -26,10 +26,10 @@
 (defn ws-proxy-redir [ws]
   (log/debug "launching proxy instance ...")
   (let [{:keys [in]} (proxy/launch-java-file "src/Proxy.java"
-                                              {:consume-stdout
-                                               (fn [lin]
-                                                 (log/info "got line from proxy:" lin)
-                                                 (s/put! ws (str lin "#\n")))})]
+                                             {:consume-stdout
+                                              (fn [lin]
+                                                (log/info "got line from proxy:" lin)
+                                                @(s/put! ws (str lin "\n")))})]
     (s/on-closed ws
                  (fn [& args]
                    (log/debug "websocket closed, closing proxy")
