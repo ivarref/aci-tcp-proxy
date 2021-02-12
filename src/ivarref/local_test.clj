@@ -29,25 +29,30 @@
 (comment
   (ws-enc (.getBytes " !abcæøåðÿ" StandardCharsets/ISO_8859_1)))
 
+(defn mime-reducer [cb so-far chr]
+  (cond
+    ; ignore echo from stdin on server
+    (contains? #{\! \$} chr)
+    so-far
+
+    ; the char # marks end of mime chunk
+    (= chr \#)
+    (let [decoded (.decode (Base64/getMimeDecoder) ^String so-far)]
+      (log/info "consuming" (alength decoded) "bytes...")
+      (cb decoded)
+      "")
+
+    ; build up mime chunk
+    :else
+    (str so-far chr)))
+
 (defn mime-consumer! [ws cb]
   (->> ws
        (s/->source)
        (s/mapcat (fn [x]
                    (assert (string? x))
                    (seq x)))
-       (s/reduce (fn [o n]
-                   (cond
-                     (contains? #{\! \$} n)
-                     o
-
-                     (= n \#)
-                     (let [decoded (.decode (Base64/getMimeDecoder) ^String o)]
-                       (cb decoded)
-                       "")
-
-                     :else
-                     (str o n)))
-                 "")))
+       (s/reduce (partial mime-reducer cb) "")))
 
 (defn test-round-trip [byt]
   (clear)
