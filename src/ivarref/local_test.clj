@@ -57,7 +57,8 @@
 (defn test-round-trip [byt]
   (clear)
   (assert (bytes? byt))
-  (let [p (promise)
+  (let [chunks (atom [])
+        p (promise)
         ws @(http/websocket-client "ws://localhost:3333")]
     (log/debug "p is" promise)
     (log/debug "got websocket client!")
@@ -66,13 +67,17 @@
       (fn [& args]
         (deliver p nil)
         (log/debug "websocket client closed")))
-    (mime-consumer! ws (fn [byte-chunk] (deliver p byte-chunk)))
+    (mime-consumer! ws (fn [byte-chunk]
+                         (let [new-chunks (swap! chunks conj byte-chunk)]
+                           (when (= (alength byt)
+                                    (reduce + 0 (map alength new-chunks)))
+                             (deliver p (byte-array (mapcat seq new-chunks)))))))
     @(s/put! ws (ws-enc byt))
     @p
     (s/close! ws)
     (assert (= (seq @p) (seq byt))
             "round trip test failed!")
-    (log/info "round trip test OK!")))
+    (log/info "round trip test OK! \uD83D\uDE3A \uD83D\uDE3B")))
 
 (comment
   (test-round-trip (.getBytes (str/join "\n" (repeat 100 "Hello World !abcæøåðÿ!"))
