@@ -75,7 +75,6 @@ public class Proxy {
             try (Socket sock = new Socket(host, Integer.parseInt(port));
                  OutputStream toSocket = new BufferedOutputStream(sock.getOutputStream());
                  InputStream fromSocket = new BufferedInputStream(sock.getInputStream())) {
-                System.out.println("READY :-)");
 
                 Thread readStdin = new Thread() {
                     public void run() {

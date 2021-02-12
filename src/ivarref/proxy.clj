@@ -9,8 +9,7 @@
     (spit "Runner" new-src)
     (check ($ chmod +x Runner))
     (log/debug "launching runner ...")
-    (let [start-time (System/currentTimeMillis)
-          pb (->
+    (let [pb (->
                (ProcessBuilder. ["/home/ire/code/infra/aci-tcp-proxy/Runner"])
                #_(.redirectError ProcessBuilder$Redirect/INHERIT))
           ^Process proc (.start pb)
@@ -21,10 +20,6 @@
         (doseq [lin (line-seq (BufferedReader. (InputStreamReader. (.getErrorStream proc) StandardCharsets/UTF_8)))]
           (log/info lin))
         (log/debug "proxy stderr exhausted"))
-      (log/debug "waiting for java app to emit a single line... :-)")
-      (.readLine stdout)
-      (let [spent-time (- (System/currentTimeMillis) start-time)]
-        (log/debug "ready in" spent-time "ms"))
       (future
         (doseq [lin (line-seq stdout)]
           (consume-stdout lin))

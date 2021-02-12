@@ -85,9 +85,7 @@
                            (when (= (alength byt)
                                     (reduce + 0 (map alength new-chunks)))
                              (deliver p (byte-array (mapcat seq new-chunks)))))))
-    (log/info "writing config...")
     @(s/put! ws (ws-map {}))
-    (log/info "writing config... OK")
     @(s/put! ws (ws-enc byt))
     @p
     (s/close! ws)
