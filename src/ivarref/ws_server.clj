@@ -8,11 +8,11 @@
   (:import (java.net InetSocketAddress)))
 
 (defn echo-handler [s info]
-  (log/info "new connection for echo handler")
+  (log/debug "new connection for echo handler")
   (s/consume
     (fn [byt]
       (assert (bytes? byt))
-      (log/info "echo handler received chunk of" (alength byt) "bytes")
+      (log/debug "echo handler received chunk of" (alength byt) "bytes")
       @(s/put! s byt))
     s))
 

@@ -85,14 +85,16 @@
                            (when (= (alength byt)
                                     (reduce + 0 (map alength new-chunks)))
                              (deliver p (byte-array (mapcat seq new-chunks)))))))
-    @(s/put! ws (ws-map {:host "127.0.0.1" :port "2222" :logPort "12345"}))
-    @(s/put! ws (ws-enc byt))
+    @(s/put! ws (ws-map {:host "127.0.0.1" :port "2222"}))
+    (doseq [chunk (partition-all 1024 (seq byt))]
+      @(s/put! ws (ws-enc (byte-array (vec chunk)))))
     @p
     (s/close! ws)
     (assert (= (seq @p) (seq byt))
             "round trip test failed!")
+    (log/info "number of bytes:" (alength byt))
     (log/info "round trip test OK! \uD83D\uDE3A \uD83D\uDE3B")))
 
 (comment
-  (test-round-trip (.getBytes (str/join "\n" (repeat 100 "Hello World !abcæøåðÿ!"))
+  (test-round-trip (.getBytes (str/join "\n" (repeat 1000 "Hello World !abcæøåðÿ!"))
                               StandardCharsets/UTF_8)))
