@@ -4,10 +4,8 @@
             [manifold.stream :as s]
             [clojure.tools.logging :as log]
             [babashka.process :refer [$ check]]
-            [ivarref.proxy :as runner])
-  (:import (java.net InetSocketAddress)
-           (java.io OutputStreamWriter InputStreamReader BufferedReader BufferedWriter)
-           (java.nio.charset StandardCharsets)))
+            [ivarref.proxy :as proxy])
+  (:import (java.net InetSocketAddress)))
 
 (defn echo-handler [s info]
   (log/info "new connection for echo handler")
@@ -27,7 +25,7 @@
 
 (defn ws-proxy-redir [ws]
   (log/debug "launching proxy instance ...")
-  (let [{:keys [in]} (runner/launch-java-file "src/Proxy.java"
+  (let [{:keys [in]} (proxy/launch-java-file "src/Proxy.java"
                                               {:consume-stdout
                                                (fn [lin]
                                                  (log/info "got line from proxy:" lin)
