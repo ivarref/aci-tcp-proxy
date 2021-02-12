@@ -66,8 +66,10 @@
       (fn [& args]
         (deliver p nil)
         (log/debug "websocket client closed")))
-    (mime-consumer! ws (fn [chunk] (deliver p chunk)))
+    (mime-consumer! ws (fn [chunk] (deliver p "whooho")))
     @(s/put! ws (ws-enc byt))
+    (Thread/sleep 3000)
+    (log/info "***********************")
     (let [res (deref p)]
       (log/info "res is" res)
       @(s/close! ws)
