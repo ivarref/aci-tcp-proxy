@@ -171,9 +171,9 @@ public class Proxy {
         while (running.get()) {
             int read = fromSocket.read(buf);
             if (read != 1) {
-                String chunk = encoder.encodeToString(Arrays.copyOf(buf, read));
+                String chunk = encoder.encodeToString(Arrays.copyOf(buf, read)).trim();
                 out.write(chunk);
-                out.write("\n");
+                out.write("#\n");
                 out.flush();
                 debug("got chunk of " + read + " bytes from socket");
             } else {
