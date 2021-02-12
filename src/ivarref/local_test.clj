@@ -60,9 +60,9 @@
                                ""))]
       @(s/put! ws (ws-enc (.getBytes "Hello world from websocket!" StandardCharsets/UTF_8)))
       (log/info "ws client OK put")
-      (log/info "waiting for socket to close...")
-      @drain
-      (s/close! ws))))
+      (log/info "waiting for socket to close..."))))
+      ;@drain
+      ;(s/close! ws))))
 
 (comment
   (run-test))
