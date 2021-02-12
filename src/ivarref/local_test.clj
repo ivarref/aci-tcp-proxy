@@ -59,7 +59,7 @@
   (assert (bytes? byt))
   (let [p (promise)
         ws @(http/websocket-client "ws://localhost:3333")]
-    (log/info "p is" promise)
+    (log/debug "p is" promise)
     (log/debug "got websocket client!")
     (s/on-closed
       ws
@@ -75,7 +75,8 @@
     (log/info "round trip test OK!")))
 
 (comment
-  (test-round-trip (.getBytes "Hello World!" StandardCharsets/UTF_8)))
+  (test-round-trip (.getBytes (str/join "\n" (repeat 100 "Hello World !abcæøåðÿ!"))
+                              StandardCharsets/UTF_8)))
 
 
 (defn run-test []

@@ -79,7 +79,7 @@ public class Proxy {
             String host = "127.0.0.1"; //getOpt("PROXY_REMOTE_HOST", bufIn);
             String port = "2222"; //getOpt("PROXY_REMOTE_PORT", bufIn);
 
-            debug("Proxy starting, development = " + development + ". Connecting to " + host + "@" + port + " ...");
+            trace("Proxy starting, development = " + development + ". Connecting to " + host + "@" + port + " ...");
 
             try (Socket sock = new Socket(host, Integer.parseInt(port));
                  OutputStream toSocket = new BufferedOutputStream(sock.getOutputStream());
@@ -131,7 +131,7 @@ public class Proxy {
             }
         } finally {
             long spentTime = System.currentTimeMillis() - startTime;
-            debug("AciTcpProxy exiting... Spent " + spentTime + " ms");
+            trace("AciTcpProxy exiting... Spent " + spentTime + " ms");
         }
     }
 
@@ -155,14 +155,14 @@ public class Proxy {
                         throw e;
                     }
                 } else if (line.equalsIgnoreCase("$")) {
-                    debug("flushing socket...");
+                    trace("flushing socket...");
                     toSocket.flush();
                     debug("wrote chunk of length " + counter + " to socket");
                     counter = 0;
                 }
             }
         }
-        debug("stdin loop exiting");
+        trace("stdin loop exiting");
     }
 
     private static void readSocketLoop(AtomicBoolean running, BufferedWriter out, InputStream fromSocket) throws IOException {

@@ -21,10 +21,10 @@
         (doseq [lin (line-seq (BufferedReader. (InputStreamReader. (.getErrorStream proc) StandardCharsets/UTF_8)))]
           (log/info lin))
         (log/debug "proxy stderr exhausted"))
-      (log/info "waiting for java app to emit a single line... :-)")
+      (log/debug "waiting for java app to emit a single line... :-)")
       (.readLine stdout)
       (let [spent-time (- (System/currentTimeMillis) start-time)]
-        (log/info "ready in" spent-time "ms"))
+        (log/debug "ready in" spent-time "ms"))
       (future
         (doseq [lin (line-seq stdout)]
           (consume-stdout lin))

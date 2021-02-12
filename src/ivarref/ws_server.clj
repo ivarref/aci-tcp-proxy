@@ -28,7 +28,7 @@
   (let [{:keys [in]} (proxy/launch-java-file "src/Proxy.java"
                                              {:consume-stdout
                                               (fn [lin]
-                                                (log/info "got line from proxy:" lin)
+                                                #_(log/info "got line from proxy:" lin)
                                                 @(s/put! ws (str lin "\n")))})]
     (s/on-closed ws
                  (fn [& args]
