@@ -6,10 +6,7 @@
             [babashka.process :refer [$ check]]
             [clojure.string :as str]
             [ivarref.ws-server])
-  (:import (java.net InetSocketAddress)
-           (java.io InputStreamReader BufferedReader BufferedWriter OutputStreamWriter)
-           (java.nio.charset StandardCharsets)
-           (java.lang ProcessBuilder$Redirect)
+  (:import(java.nio.charset StandardCharsets)
            (java.util Base64)))
 
 (defn clear []
@@ -32,38 +29,44 @@
 (comment
   (ws-enc (.getBytes " !abcæøåðÿ" StandardCharsets/ISO_8859_1)))
 
+(defn mime-consumer! [ws cb]
+  (->> ws
+       (s/->source)
+       (s/mapcat (fn [x]
+                   (assert (string? x))
+                   (seq x)))
+       (s/reduce (fn [o n]
+                   (cond
+                     (contains? #{\! \$} n)
+                     o
+
+                     (= n \#)
+                     (let [decoded (.decode (Base64/getMimeDecoder) ^String o)]
+                       (cb decoded)
+                       "")
+
+                     :else
+                     (str o n)))
+                 "")))
+
 (defn test-round-trip [byt]
+  (clear)
   (assert (bytes? byt))
   (let [p (promise)
         ws @(http/websocket-client "ws://localhost:3333")]
+    (log/info "p is" promise)
     (log/debug "got websocket client!")
     (s/on-closed
       ws
       (fn [& args]
         (deliver p nil)
         (log/debug "websocket client closed")))
-    (let [drain (->> ws
-                     (s/->source)
-                     (s/mapcat (fn [x]
-                                 (assert (string? x))
-                                 (seq x)))
-                     (s/reduce (fn [o n]
-                                 (cond
-                                   (contains? #{\! \$} n)
-                                   o
-
-                                   (= n \#)
-                                   (let [decoded (.decode (Base64/getMimeDecoder) ^String o)]
-                                     (deliver p decoded)
-                                     "")
-
-                                   :else
-                                   (str o n)))
-                               ""))]
-      @(s/put! ws (ws-enc byt))
-      (let [res @promise]
-        @(s/close! ws)
-        (= (seq res) (seq byt))))))
+    (mime-consumer! ws (fn [chunk] (deliver p chunk)))
+    @(s/put! ws (ws-enc byt))
+    (let [res (deref p)]
+      (log/info "res is" res)
+      @(s/close! ws)
+      (= (seq res) (seq byt)))))
 
 (comment
   (test-round-trip (.getBytes "Hello World!" StandardCharsets/UTF_8)))
