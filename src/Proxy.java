@@ -73,7 +73,7 @@ public class Proxy {
             String host = props.getProperty("host", "localhost");
             String port = props.getProperty("port", "7777");
 
-            debug("Proxy starting, development = " + development + ". Connecting to " + host + "@" + port + " ...");
+            trace("Proxy starting, development = " + development + ". Connecting to " + host + "@" + port + " ...");
 
             try (Socket sock = new Socket(host, Integer.parseInt(port));
                  OutputStream toSocket = new BufferedOutputStream(sock.getOutputStream());
