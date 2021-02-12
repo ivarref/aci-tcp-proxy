@@ -66,14 +66,13 @@
       (fn [& args]
         (deliver p nil)
         (log/debug "websocket client closed")))
-    (mime-consumer! ws (fn [chunk] (deliver p "whooho")))
+    (mime-consumer! ws (fn [byte-chunk] (deliver p byte-chunk)))
     @(s/put! ws (ws-enc byt))
-    (Thread/sleep 3000)
-    (log/info "***********************")
-    (let [res (deref p)]
-      (log/info "res is" res)
-      @(s/close! ws)
-      (= (seq res) (seq byt)))))
+    @p
+    (s/close! ws)
+    (assert (= (seq @p) (seq byt))
+            "round trip test failed!")
+    (log/info "round trip test OK!")))
 
 (comment
   (test-round-trip (.getBytes "Hello World!" StandardCharsets/UTF_8)))
