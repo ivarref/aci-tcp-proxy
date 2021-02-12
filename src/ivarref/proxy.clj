@@ -1,4 +1,4 @@
-(ns ivarref.runner
+(ns ivarref.proxy
   (:require [clojure.tools.logging :as log]
             [babashka.process :refer [$ check]])
   (:import (java.io OutputStreamWriter InputStreamReader BufferedReader BufferedWriter)

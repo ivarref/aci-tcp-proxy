@@ -4,7 +4,7 @@
             [manifold.stream :as s]
             [clojure.tools.logging :as log]
             [babashka.process :refer [$ check]]
-            [ivarref.runner :as runner])
+            [ivarref.proxy :as runner])
   (:import (java.net InetSocketAddress)
            (java.io OutputStreamWriter InputStreamReader BufferedReader BufferedWriter)
            (java.nio.charset StandardCharsets)))
