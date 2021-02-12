@@ -85,7 +85,7 @@
                            (when (= (alength byt)
                                     (reduce + 0 (map alength new-chunks)))
                              (deliver p (byte-array (mapcat seq new-chunks)))))))
-    @(s/put! ws (ws-map {}))
+    @(s/put! ws (ws-map {:host "127.0.0.1" :port "2222" :logPort "12345"}))
     @(s/put! ws (ws-enc byt))
     @p
     (s/close! ws)

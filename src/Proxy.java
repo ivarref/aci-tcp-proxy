@@ -60,7 +60,9 @@ public class Proxy {
             logFile.deleteOnExit();
 
             loadConfig(in);
-            debug("wooho");
+            for (Object key : props.keySet()) {
+                debug("config '" + key + "' => '" + props.getProperty((String)key) + "'");
+            }
 
             Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
                 debug("uncaught exception on thread: " + t.getName());
