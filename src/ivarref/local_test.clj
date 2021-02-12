@@ -69,7 +69,6 @@
        (s/reduce (partial mime-reducer cb) "")))
 
 (defn test-round-trip [byt]
-  (clear)
   (assert (bytes? byt))
   (let [chunks (atom [])
         p (promise)
@@ -86,6 +85,9 @@
                            (when (= (alength byt)
                                     (reduce + 0 (map alength new-chunks)))
                              (deliver p (byte-array (mapcat seq new-chunks)))))))
+    (log/info "writing config...")
+    @(s/put! ws (ws-map {}))
+    (log/info "writing config... OK")
     @(s/put! ws (ws-enc byt))
     @p
     (s/close! ws)

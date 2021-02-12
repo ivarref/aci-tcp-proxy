@@ -1,14 +1,12 @@
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
-import java.util.Base64;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Proxy {
+
+    final static Properties props = new Properties();
 
     static File logFile = null;
 
@@ -19,57 +17,50 @@ public class Proxy {
 
     public static synchronized void debug(String s) {
         System.err.println(s);
-        try {
-            if (development) {
-                if (logSocket == null) {
-                    logSocket = new Socket("127.0.0.1", 6666);
-                    writer = new BufferedWriter(new OutputStreamWriter(logSocket.getOutputStream(), StandardCharsets.UTF_8));
-                }
-//                writer.write(s + "\n");
-//                writer.flush();
-
-                ;
-            }
-//            s = s + "\n";
-//            Files.write(Paths.get(logFile.getAbsolutePath()), s.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
-        } catch (IOException e) {
-            //exception handling left as an exercise for the reader
-        }
     }
 
     public static synchronized void trace(String s) {
     }
 
-    public static String getOpt(String envKey, BufferedReader bufIn) throws IOException {
-        String v = System.getenv(envKey);
-        if (v == null) {
-            v = "";
-        }
-        v = v.trim();
-        if (v.equalsIgnoreCase("")) {
-            v = bufIn.readLine();
-            if (v == null) {
-                debug("could not get any value for " + envKey + " from remote!");
-                return null;
+    public static void loadConfig(BufferedReader in) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        while (true) {
+            String line = in.readLine();
+            if (line == null) {
+                debug("stdin closed while reading config!");
+                break;
+                //throw new IllegalStateException("stdin closed while reading config");
+            }
+
+            line = line.trim();
+            if (line.equalsIgnoreCase("$")) {
+                break;
+            } else if (line.length() == 0) {
+            } else if (line.length() == 8) {
+                baos.write(parseLine(line));
             } else {
-                v = v.trim();
-                debug("using >" + v + "< for " + envKey + " from remote");
+                debug("unhandled line: >" + line + "<");
+                break;
+                //throw new IllegalStateException("unhandled line: " + line);
             }
         }
-        return v;
+        String config = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+        props.load(new StringReader(config));
     }
 
     public static void main(String[] args) {
         long startTime = System.currentTimeMillis();
         AtomicBoolean okClose = new AtomicBoolean(false);
 
-        try (BufferedReader bufIn = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
              BufferedWriter out = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
             final AtomicBoolean running = new AtomicBoolean(true);
 
             logFile = File.createTempFile("proxy-", ".log");
             logFile.deleteOnExit();
 
+            loadConfig(in);
+            debug("wooho");
 
             Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
                 debug("uncaught exception on thread: " + t.getName());
@@ -89,7 +80,7 @@ public class Proxy {
                 Thread readStdin = new Thread() {
                     public void run() {
                         try {
-                            readStdinLoop(running, bufIn, toSocket);
+                            readStdinLoop(running, in, toSocket);
                         } catch (Throwable t) {
                             debug("error in stdin read loop: " + t.getMessage());
                         }
@@ -135,6 +126,13 @@ public class Proxy {
         }
     }
 
+    private static int parseLine(String line) {
+        line = line.trim();
+        line = line.replace('_', '0')
+                .replace('!', '1');
+        return Integer.parseInt(line, 2);
+    }
+
     private static void readStdinLoop(AtomicBoolean running, BufferedReader in, OutputStream toSocket) throws IOException {
         int counter = 0;
         while (running.get()) {
@@ -144,9 +142,7 @@ public class Proxy {
             } else {
                 line = line.trim();
                 if (line.length() == 8) {
-                    line = line.replace('_', '0')
-                            .replace('!', '1');
-                    int b = Integer.parseInt(line, 2);
+                    int b = parseLine(line);
                     try {
                         toSocket.write(b);
                         counter += 1;
