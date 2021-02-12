@@ -46,7 +46,7 @@
 (defn mime-reducer [cb so-far chr]
   (cond
     ; ignore echo from stdin on server
-    (contains? #{\! \$} chr)
+    (contains? #{\! \$ \_} chr)
     so-far
 
     ; the char # marks end of mime chunk
