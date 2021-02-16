@@ -5,7 +5,8 @@
             [clojure.tools.logging :as log]
             [babashka.process :refer [$ check]]
             [ivarref.proxy :as proxy])
-  (:import (java.net InetSocketAddress)))
+  (:import (java.net InetSocketAddress)
+           (java.nio.charset StandardCharsets)))
 
 (defn echo-handler [s info]
   (log/debug "new connection for echo handler")
@@ -22,6 +23,25 @@
     (fn [s info]
       (echo-handler s info))
     {:socket-address (InetSocketAddress. "127.0.0.1" 2222)}))
+
+
+(defn log-server-handler [sock]
+  (->> sock
+       (s/mapcat seq)
+       (s/reduce (fn [so-far byt]
+                   (if (= 10 byt)
+                     (do
+                       (log/info "log-server:" (String. (byte-array so-far) StandardCharsets/UTF_8))
+                       [])
+                     (conj so-far byt)))
+                 [])))
+
+(defonce
+  log-server
+  (tcp/start-server
+    (fn [s info]
+      (log-server-handler s))
+    {:socket-address (InetSocketAddress. "127.0.0.1" 12345)}))
 
 (defn ws-proxy-redir [ws]
   (log/debug "launching proxy instance ...")

@@ -13,10 +13,21 @@ public class Proxy {
     static boolean development = new File(".").getAbsolutePath().contains("/aci-tcp-proxy/");
 
     static Socket logSocket = null;
-    static BufferedWriter writer = null;
+    static BufferedWriter logWriter = null;
 
     public static synchronized void debug(String s) {
-        System.err.println(s);
+        if (development) {
+            System.err.println(s);
+        }
+
+        if (logWriter != null) {
+            try {
+                logWriter.write(s + "\n");
+                logWriter.flush();
+            } catch (IOException e) {
+                // help!
+            }
+        }
     }
 
     public static synchronized void trace(String s) {
@@ -73,6 +84,12 @@ public class Proxy {
             String host = props.getProperty("host", "localhost");
             String port = props.getProperty("port", "7777");
 
+            String logPort = props.getProperty("logPort", "-1");
+            if (!logPort.equalsIgnoreCase("-1")) {
+                logSocket = new Socket("localhost", Integer.parseInt(logPort));
+                logWriter = new BufferedWriter(new OutputStreamWriter(logSocket.getOutputStream(), StandardCharsets.UTF_8));
+            }
+
             trace("Proxy starting, development = " + development + ". Connecting to " + host + "@" + port + " ...");
 
             try (Socket sock = new Socket(host, Integer.parseInt(port));
@@ -115,6 +132,14 @@ public class Proxy {
                     debug("failed to close read socket loop!");
                 } else {
                     okClose.set(true);
+                }
+                if (logWriter != null) {
+                    logWriter.close();
+                    logWriter = null;
+                }
+                if (logSocket != null) {
+                    logSocket.close();
+                    logSocket = null;
                 }
             }
         } catch (Throwable t) {

@@ -85,7 +85,7 @@
                            (when (= (alength byt)
                                     (reduce + 0 (map alength new-chunks)))
                              (deliver p (byte-array (mapcat seq new-chunks)))))))
-    @(s/put! ws (ws-map {:host "127.0.0.1" :port "2222"}))
+    @(s/put! ws (ws-map {:host "127.0.0.1" :port "2222" :logPort "12345"}))
     (doseq [chunk (partition-all 4096 (seq byt))]
       (log/info "pushing chunk of" (count chunk) "bytes")
       @(s/put! ws (ws-enc (byte-array (vec chunk)))))
@@ -102,5 +102,5 @@
 (comment
   (do
     (clear)
-    (test-round-trip (.getBytes (str/join "\n" (repeat 40000 "Hello World !abcæøåðÿ!"))
+    (test-round-trip (.getBytes "Hello World !abcæøåðÿ!"
                                 StandardCharsets/UTF_8))))
