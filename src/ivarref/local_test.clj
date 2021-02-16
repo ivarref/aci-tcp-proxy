@@ -70,10 +70,10 @@
 
 (defn test-round-trip [byt]
   (assert (bytes? byt))
-  (let [chunks (atom [])
+  (let [start-time (System/currentTimeMillis)
+        chunks (atom [])
         p (promise)
         ws @(http/websocket-client "ws://localhost:3333")]
-    (log/debug "p is" promise)
     (log/debug "got websocket client!")
     (s/on-closed
       ws
@@ -86,15 +86,21 @@
                                     (reduce + 0 (map alength new-chunks)))
                              (deliver p (byte-array (mapcat seq new-chunks)))))))
     @(s/put! ws (ws-map {:host "127.0.0.1" :port "2222"}))
-    (doseq [chunk (partition-all 1024 (seq byt))]
+    (doseq [chunk (partition-all 4096 (seq byt))]
+      (log/info "pushing chunk of" (count chunk) "bytes")
       @(s/put! ws (ws-enc (byte-array (vec chunk)))))
     @p
     (s/close! ws)
     (assert (= (seq @p) (seq byt))
             "round trip test failed!")
     (log/info "number of bytes:" (alength byt))
-    (log/info "round trip test OK! \uD83D\uDE3A \uD83D\uDE3B")))
+    (let [spent-time (- (System/currentTimeMillis) start-time)
+          bytes-by-ms (double (/ (alength byt) spent-time))]
+      (log/info "round trip test OK in" spent-time "ms, " (format "%.1f" bytes-by-ms)
+                "kB/s! \uD83D\uDE3A \uD83D\uDE3B"))))
 
 (comment
-  (test-round-trip (.getBytes (str/join "\n" (repeat 1000 "Hello World !abcæøåðÿ!"))
-                              StandardCharsets/UTF_8)))
+  (do
+    (clear)
+    (test-round-trip (.getBytes (str/join "\n" (repeat 40000 "Hello World !abcæøåðÿ!"))
+                                StandardCharsets/UTF_8))))
