@@ -86,7 +86,7 @@ public class Proxy {
                 logWriter = new BufferedWriter(new OutputStreamWriter(logSocket.getOutputStream(), StandardCharsets.UTF_8));
             }
 
-            trace("Proxy starting, development = " + development + ". Connecting to " + host + "@" + port + " ...");
+            debug("Proxy starting, development = " + development + ". Connecting to " + host + "@" + port + " ...");
 
             try (Socket sock = new Socket(host, Integer.parseInt(port));
                  OutputStream toSocket = new BufferedOutputStream(sock.getOutputStream());
@@ -177,7 +177,7 @@ public class Proxy {
                 } else if (line.equalsIgnoreCase("$")) {
                     toSocket.write(baos.toByteArray());
                     toSocket.flush();
-                    trace("wrote chunk of length " + counter + " to socket");
+                    debug("wrote chunk of length " + counter + " to socket");
                     counter = 0;
                     baos.reset();
                 } else if (line.equalsIgnoreCase("$$")) {
@@ -206,7 +206,7 @@ public class Proxy {
                 out.write(chunk);
                 out.write("#\n");
                 out.flush();
-                trace("got chunk of " + read + " bytes from socket");
+                debug("got chunk of " + read + " bytes from socket");
             } else {
                 debug("read socket closed");
                 running.set(false);
