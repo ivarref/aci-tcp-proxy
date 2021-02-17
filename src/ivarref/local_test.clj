@@ -57,5 +57,6 @@
 (comment
   (do
     ;(clear)
-    (test-round-trip (local-websocket)
-                     (.getBytes "Hello World !abcæøåðÿ!" StandardCharsets/UTF_8))))
+    (test-round-trip
+      (local-websocket)
+      (.getBytes "Hello World !abcæøåðÿ!" StandardCharsets/UTF_8))))
