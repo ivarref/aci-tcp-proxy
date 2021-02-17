@@ -72,10 +72,6 @@ public class Proxy {
 
             loadConfig(in);
 
-//            for (Object key : props.keySet()) {
-//                debug("config '" + key + "' => '" + props.getProperty((String)key) + "'");
-//            }
-
             Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
                 debug("uncaught exception on thread: " + t.getName());
                 debug("uncaught exception message was: " + e.getMessage());
@@ -133,14 +129,6 @@ public class Proxy {
                 } else {
                     okClose.set(true);
                 }
-                if (logWriter != null) {
-                    logWriter.close();
-                    logWriter = null;
-                }
-                if (logSocket != null) {
-                    logSocket.close();
-                    logSocket = null;
-                }
             }
         } catch (Throwable t) {
             if (!(t.getMessage().equalsIgnoreCase("Socket closed") && okClose.get())) {
@@ -149,7 +137,20 @@ public class Proxy {
             }
         } finally {
             long spentTime = System.currentTimeMillis() - startTime;
-            trace("AciTcpProxy exiting... Spent " + spentTime + " ms");
+            debug("AciTcpProxy exiting... Spent " + spentTime + " ms");
+        }
+
+        try {
+            if (logWriter != null) {
+                logWriter.close();
+                logWriter = null;
+            }
+            if (logSocket != null) {
+                logSocket.close();
+                logSocket = null;
+            }
+        } catch (Throwable t) {
+
         }
     }
 
@@ -185,7 +186,7 @@ public class Proxy {
                 }
             }
         }
-        trace("stdin loop exiting");
+        debug("stdin loop exiting");
     }
 
     private static void readSocketLoop(AtomicBoolean running, BufferedWriter out, InputStream fromSocket) throws IOException {
