@@ -42,6 +42,7 @@
       (ws-enc)))
 
 (defn mime-reducer [cb so-far chr]
+  (log/debug "received" (pr-str chr))
   (cond
     ; ignore echo from stdin on server
     (contains? #{\! \$ \_} chr)
@@ -50,13 +51,14 @@
     ; the char # marks end of mime chunk
     (= chr \#)
     (let [decoded (.decode (Base64/getMimeDecoder) ^String so-far)]
-      (log/debug "consuming" (alength decoded) "bytes...")
+      (log/info "consuming" (alength decoded) "bytes...")
       (cb decoded)
       "")
 
     ; build up mime chunk
     :else
-    (str so-far chr)))
+    (do
+      (str so-far chr))))
 
 (defn mime-consumer! [ws cb]
   (->> ws

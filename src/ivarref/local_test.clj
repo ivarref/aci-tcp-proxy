@@ -26,15 +26,25 @@
         (deliver p nil)
         (log/debug "websocket client closed")))
     (wu/mime-consumer! ws (fn [byte-chunk]
-                            (let [new-chunks (swap! chunks conj byte-chunk)]
-                              (when (= (alength byt)
-                                       (reduce + 0 (map alength new-chunks)))
+
+                            (let [new-chunks (swap! chunks conj byte-chunk)
+                                  new-length (reduce + 0 (map alength new-chunks))
+                                  missing-bytes (- (alength byt) new-length)
+                                  percentage (double (/ (* 100 new-length) (alength byt)))]
+                              (log/info "received byte chunk of length" (alength byte-chunk)
+                                        ","
+                                        (format "%.1f%" percentage) "done!")
+                              (when (= (alength byt) new-length)
+                                (log/info "delivering...")
                                 (deliver p (byte-array (mapcat seq new-chunks)))))))
     @(s/put! ws (wu/ws-map {:host "127.0.0.1" :port "2222" :logPort "12345"}))
+    (log/info "pushing a total of" (count (seq byt)) "bytes ...")
     (doseq [chunk (partition-all 4096 (seq byt))]
       (log/debug "pushing chunk of" (count chunk) "bytes")
       (assert (true? @(s/put! ws (wu/ws-enc (byte-array (vec chunk)))))))
+    (log/info "done pushing!")
     @p
+    (log/info "got all chunks, closing!")
     @(s/put! ws (wu/ws-enc-remote-cmd "close!"))
     (s/close! ws)
     (assert (= (seq @p) (seq byt))
@@ -60,5 +70,5 @@
     (test-round-trip
       (local-websocket)
       (.getBytes
-        (str/join "\n" (repeat 1000 "Hello World !abcæøåðÿ!"))
+        (str/join "\n" (repeat 4000 "Hello World !abcæøåðÿ!"))
         StandardCharsets/UTF_8))))

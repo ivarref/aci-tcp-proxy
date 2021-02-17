@@ -18,7 +18,7 @@
           stdout (BufferedReader. (InputStreamReader. (.getInputStream proc) StandardCharsets/UTF_8))]
       (future
         (doseq [lin (line-seq (BufferedReader. (InputStreamReader. (.getErrorStream proc) StandardCharsets/UTF_8)))]
-          (log/info lin))
+          (log/debug lin))
         (log/debug "proxy stderr exhausted"))
       (future
         (doseq [lin (line-seq stdout)]
