@@ -1,14 +1,12 @@
 (ns ivarref.aci-tcp-proxy
   (:require [aleph.tcp :as tcp]
             [babashka.process :refer [$ check]]
-            [clojure.string :as str]
             [clojure.tools.logging :as log]
             [ivarref.az-utils :as az-utils]
             [aleph.netty :as netty]
             [manifold.stream :as s]
             [ivarref.ws-utils :as wu])
-  (:import (java.net InetSocketAddress)
-           (java.nio.charset StandardCharsets)))
+  (:import (java.net InetSocketAddress)))
 
 (defn not-empty-string [s]
   (and (string? s)
@@ -19,6 +17,7 @@
     local
     (fn [& args]
       (log/info "local client closed connection")
+      @(s/put! remote (wu/ws-enc-remote-cmd "close!"))
       (s/close! remote)))
 
   (s/on-closed
