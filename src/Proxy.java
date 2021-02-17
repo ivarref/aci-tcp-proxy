@@ -213,7 +213,7 @@ public class Proxy {
     }
 
 
-        private static void readSocketLoop(AtomicBoolean running, BufferedWriter out, InputStream fromSocket) throws IOException {
+    private static void readSocketLoop(AtomicBoolean running, BufferedWriter out, InputStream fromSocket) throws IOException {
         byte[] buf = new byte[65535];
         Base64.Encoder encoder = Base64.getMimeEncoder();
         while (running.get()) {
