@@ -37,6 +37,7 @@
   (wu/mime-consumer!
     ws
     (fn [byte-chunk]
+      (assert (bytes? byte-chunk))
       @(s/put! local byte-chunk))))
 
 (defn handler [{:keys [remote-host remote-port] :as opts} sock _info]
