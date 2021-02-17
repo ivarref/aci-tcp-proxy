@@ -1,5 +1,5 @@
 {:deps    {org.clojure/clojure    {:mvn/version "1.10.2"}
-           aleph/aleph            {:mvn/version "0.4.6"}
+           aleph/aleph            {:mvn/version "0.4.7-alpha7"}
            babashka/process       {:mvn/version "0.0.1"}
            cheshire/cheshire      {:mvn/version "5.10.0"}
            org.slf4j/slf4j-simple {:mvn/version "1.7.30"}}

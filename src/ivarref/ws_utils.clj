@@ -5,16 +5,38 @@
   (:import (java.nio.charset StandardCharsets)
            (java.util Base64)))
 
+(def alphabet (mapv str (seq "_!@%'&*([{}]).,;")))
+
+(defn to-hex-nibble [b]
+  (nth alphabet b))
+
+#_(defn ws-enc-two [byt]
+    (let [sb (StringBuilder.)]
+      (doseq [chunk (partition-all 38 (seq byt))]
+        (doseq [byt chunk]
+          (let [byt (bit-and 0xff byt)]
+            (.append sb (to-hex-nibble (bit-shift-right byt 4)))
+            (.append sb (to-hex-nibble (bit-and 0xf byt)))))
+        (.append sb "\n"))
+      (.toString sb)))
+
+#_(comment
+    (do
+      (print (ws-enc-two (.getBytes (str "asdfasffasdfasfdfasdfa"
+                                         "asdfasffasdfasfdfasdfa"
+                                         "dfasdfasdfasdfasdfasdfasdfabcabcabcHello World !abcæøåðÿ!")
+                                    StandardCharsets/ISO_8859_1)))
+      (println (str/join "" (repeat 80 "*")))))
+
 (defn ws-enc-inner [byt remote-cmd?]
   (assert (bytes? byt))
   (let [sb (StringBuilder.)]
-    (doseq [b (seq byt)]
-      (let [byte-bin-str (-> (format "%8s" (Integer/toBinaryString (bit-and b 0xff)))
-                             (str/replace " " "0")
-                             (str/replace "0" "_")
-                             (str/replace "1" "!"))]
-        (.append sb byte-bin-str)
-        (.append sb "\n")))
+    (doseq [chunk (partition-all 38 (seq byt))]
+      (doseq [byt chunk]
+        (let [byt (bit-and 0xff byt)]
+          (.append sb ^String (to-hex-nibble (bit-shift-right byt 4)))
+          (.append sb ^String (to-hex-nibble (bit-and 0xf byt)))))
+      (.append sb "\n"))
     (when remote-cmd?
       (.append sb "$"))
     (.append sb "$\n")

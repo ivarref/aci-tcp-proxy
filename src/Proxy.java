@@ -33,30 +33,57 @@ public class Proxy {
     public static synchronized void trace(String s) {
     }
 
-    public static void loadConfig(BufferedReader in) throws IOException {
+    static final String alphabet = "_!@%'&*([{}]).,;";
+
+    static private class Chunk {
+        public final byte[] bytes;
+        public final boolean dataChunk;
+        public final boolean closed;
+
+        private Chunk(byte[] bytes, boolean dataChunk, boolean closed) {
+            this.bytes = bytes;
+            this.dataChunk = dataChunk;
+            this.closed = closed;
+        }
+
+        public boolean isRemoteCmd(String cmd) {
+            if (dataChunk) {
+                return false;
+            } else {
+                return cmd.equalsIgnoreCase(new String(bytes, StandardCharsets.UTF_8));
+            }
+        }
+    }
+
+    public static Chunk readChunk(BufferedReader in) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        boolean dataChunk = true;
+        boolean closed = false;
+
         while (true) {
             String line = in.readLine();
             if (line == null) {
-                debug("stdin closed while reading config!");
+                debug("stdin closed");
+                closed = true;
                 break;
-                //throw new IllegalStateException("stdin closed while reading config");
             }
 
             line = line.trim();
             if (line.equalsIgnoreCase("$")) {
                 break;
-            } else if (line.length() == 0) {
-            } else if (line.length() == 8) {
-                baos.write(parseLine(line));
-            } else {
-                debug("unhandled line: >" + line + "<");
+            } else if (line.equalsIgnoreCase("$$")) {
+                dataChunk = false;
                 break;
-                //throw new IllegalStateException("unhandled line: " + line);
+            } else if (line.equalsIgnoreCase("")) {
+            } else {
+                for (int i = 0; i < line.length(); i += 2) {
+                    int high = alphabet.indexOf(line.charAt(i)) << 4;
+                    int low = alphabet.indexOf(line.charAt(i + 1));
+                    baos.write(low+high);
+                }
             }
         }
-        String config = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-        props.load(new StringReader(config));
+        return new Chunk(baos.toByteArray(), dataChunk, closed);
     }
 
     public static void main(String[] args) {
@@ -75,7 +102,8 @@ public class Proxy {
             out.write("^\n");
             out.flush();
 
-            loadConfig(in);
+            Chunk c = readChunk(in);
+            props.load(new StringReader(new String(c.bytes, StandardCharsets.UTF_8)));
 
             Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
                 debug("uncaught exception on thread: " + t.getName());
@@ -166,33 +194,18 @@ public class Proxy {
     }
 
     private static void readStdinLoop(AtomicBoolean running, BufferedWriter out, BufferedReader in, OutputStream toSocket) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
         while (running.get()) {
-            String line = in.readLine();
-            if (line == null) {
+            Chunk c = readChunk(in);
+            if (c.closed) {
                 running.set(false);
-            } else {
-                line = line.trim();
-                if (line.length() == 8) {
-                    int b = parseLine(line);
-                    baos.write(b);
-                } else if (line.equalsIgnoreCase("$")) {
-                    byte[] b = baos.toByteArray();
-                    toSocket.write(b);
-                    toSocket.flush();
-                    debug("wrote chunk of length " + b.length + " to socket");
-                    writeCmd(out, "chunk-ok");
-                    baos = new ByteArrayOutputStream();
-                } else if (line.equalsIgnoreCase("$$")) {
-                    String cmd = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-                    baos = new ByteArrayOutputStream();
-                    if (cmd.equalsIgnoreCase("close!")) {
-                        debug("close requested from remote");
-                        running.set(false);
-                    } else {
-                        debug("unhandled remote command: " + cmd);
-                    }
-                }
+            } else if (c.dataChunk) {
+                toSocket.write(c.bytes);
+                toSocket.flush();
+                debug("wrote chunk of length " + c.bytes.length + " to socket");
+                writeCmd(out, "chunk-ok");
+            } else if (c.isRemoteCmd("close!")) {
+                debug("close requested from remote");
+                running.set(false);
             }
         }
         debug("stdin loop exiting");
