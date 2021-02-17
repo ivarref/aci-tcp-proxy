@@ -8,8 +8,7 @@
             [ivarref.az-utils :as az-utils]
             [ivarref.ws-utils :as wu]
             [ivarref.ws-server])
-  (:import (java.nio.charset StandardCharsets)
-           (java.util Base64)))
+  (:import (java.nio.charset StandardCharsets)))
 
 (defn clear []
   (.print System/out "\033[H\033[2J")
@@ -58,5 +57,5 @@
   (do
     ;(clear)
     (test-round-trip
-      (local-websocket)
+      (az-websocket)
       (.getBytes "Hello World !abcæøåðÿ!" StandardCharsets/UTF_8))))
