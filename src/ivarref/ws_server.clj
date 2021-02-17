@@ -57,8 +57,8 @@
     (s/consume
       (fn [chunk]
         (assert (string? chunk))
-        (log/info "got str byte chunk from client of length" (int (/ (count chunk)
-                                                                     9)))
+        #_(log/info "got str byte chunk from client of length" (int (/ (count chunk)
+                                                                       9)))
         ; write chunk back to client like in a terminal echo
         @(s/put! ws chunk)
         (.write in chunk)

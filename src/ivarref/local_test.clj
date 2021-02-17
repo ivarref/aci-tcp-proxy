@@ -32,8 +32,8 @@
                                 (deliver p (byte-array (mapcat seq new-chunks)))))))
     @(s/put! ws (wu/ws-map {:host "127.0.0.1" :port "2222" :logPort "12345"}))
     (doseq [chunk (partition-all 4096 (seq byt))]
-      (log/info "pushing chunk of" (count chunk) "bytes")
-      @(s/put! ws (wu/ws-enc (byte-array (vec chunk)))))
+      (log/debug "pushing chunk of" (count chunk) "bytes")
+      (assert (true? @(s/put! ws (wu/ws-enc (byte-array (vec chunk)))))))
     @p
     @(s/put! ws (wu/ws-enc-remote-cmd "close!"))
     (s/close! ws)
@@ -56,7 +56,9 @@
 
 (comment
   (do
-    ;(clear)
+    (clear)
     (test-round-trip
       (local-websocket)
-      (.getBytes "Hello World !abcæøåðÿ!" StandardCharsets/UTF_8))))
+      (.getBytes
+        (str/join "\n" (repeat 1000 "Hello World !abcæøåðÿ!"))
+        StandardCharsets/UTF_8))))

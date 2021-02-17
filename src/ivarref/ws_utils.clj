@@ -50,7 +50,7 @@
     ; the char # marks end of mime chunk
     (= chr \#)
     (let [decoded (.decode (Base64/getMimeDecoder) ^String so-far)]
-      (log/info "consuming" (alength decoded) "bytes...")
+      (log/debug "consuming" (alength decoded) "bytes...")
       (cb decoded)
       "")
 
