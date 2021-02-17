@@ -41,7 +41,7 @@
       (.getBytes StandardCharsets/UTF_8)
       (ws-enc)))
 
-(defn mime-reducer [cb so-far chr]
+(defn mime-reducer [srv-op-cb cb so-far chr]
   (log/debug "received" (pr-str chr))
   (cond
     ; ignore echo from stdin on server
@@ -59,16 +59,26 @@
           (log/error "error message was:" (ex-message t))))
       "")
 
+    (= chr \^)
+    (let [decoded (.decode (Base64/getMimeDecoder) ^String so-far)]
+      (log/debug "consuming" (alength decoded) "bytes...")
+      (try
+        (srv-op-cb (String. decoded StandardCharsets/UTF_8))
+        (catch Throwable t
+          (log/error t "error in mime-consumer srv-op-cb")
+          (log/error "error message was:" (ex-message t))))
+      "")
+
     ; build up mime chunk
     :else
     (do
       (str so-far chr))))
 
-(defn mime-consumer! [ws cb]
+(defn mime-consumer! [ws srv-cb cb]
   (->> ws
        (s/->source)
        (s/mapcat (fn [x]
                    (assert (string? x))
                    (seq x)))
-       (s/reduce (partial mime-reducer cb) "")))
+       (s/reduce (partial mime-reducer srv-cb cb) "")))
 

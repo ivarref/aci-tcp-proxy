@@ -70,6 +70,11 @@ public class Proxy {
             logFile = File.createTempFile("proxy-", ".log");
             logFile.deleteOnExit();
 
+            String chunk = Base64.getMimeEncoder().encodeToString("ready!".getBytes(StandardCharsets.UTF_8)).trim();
+            out.write(chunk);
+            out.write("^\n");
+            out.flush();
+
             loadConfig(in);
 
             Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
@@ -87,7 +92,6 @@ public class Proxy {
             }
 
             debug("Proxy starting, development = " + development + ". Connecting to " + host + "@" + port + " ...");
-
             try (Socket sock = new Socket(host, Integer.parseInt(port));
                  OutputStream toSocket = new BufferedOutputStream(sock.getOutputStream());
                  InputStream fromSocket = new BufferedInputStream(sock.getInputStream())) {

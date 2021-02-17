@@ -18,25 +18,35 @@
   (assert (bytes? byt))
   (let [start-time (System/currentTimeMillis)
         chunks (atom [])
-        p (promise)]
+        p (promise)
+        push-ready (promise)]
     (log/debug "got websocket client!")
     (s/on-closed
       ws
       (fn [& args]
         (deliver p nil)
         (log/debug "websocket client closed")))
-    (wu/mime-consumer! ws (fn [byte-chunk]
-                            (assert (bytes? byte-chunk))
-                            (let [new-chunks (swap! chunks conj byte-chunk)
-                                  new-length (reduce + 0 (mapv alength new-chunks))
-                                  missing-bytes (- (alength byt) new-length)
-                                  percentage (double (/ (* 100 new-length) (alength byt)))]
-                              (log/info "received byte chunk of length" (alength byte-chunk)
-                                        ","
-                                        (format "%.1f%%" percentage) "done!")
-                              (when (= (alength byt) new-length)
-                                (log/info "delivering...")
-                                (deliver p (byte-array (mapcat seq new-chunks)))))))
+    (wu/mime-consumer!
+      ws
+      (fn [server-op!]
+        (cond (= "ready!" server-op!)
+              (do
+                (log/info "remote server is ready!")
+                (deliver push-ready nil))))
+      (fn [byte-chunk]
+        (assert (bytes? byte-chunk))
+        (let [new-chunks (swap! chunks conj byte-chunk)
+              new-length (reduce + 0 (mapv alength new-chunks))
+              percentage (double (/ (* 100 new-length) (alength byt)))]
+          (log/info "received byte chunk of length" (alength byte-chunk)
+                    ","
+                    (format "%.1f%%" percentage) "done!")
+          (when (= (alength byt) new-length)
+            (log/info "delivering...")
+            (deliver p (byte-array (mapcat seq new-chunks)))))))
+    (log/info "client waiting for push-ready...")
+    @push-ready
+    (log/info "client waiting for push-ready... OK!")
     @(s/put! ws (wu/ws-map {:host "127.0.0.1" :port "2222" :logPort "12345"}))
     (log/info "pushing a total of" (count (seq byt)) "bytes ...")
     (doseq [chunk (partition-all 4096 (seq byt))]
