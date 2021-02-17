@@ -7,6 +7,7 @@
 (defn launch-java-file [f {:keys [consume-stdout]}]
   (let [new-src (str "#!/usr/bin/java --source 11\n\n" (slurp f))]
     (spit "Runner" new-src)
+    (spit "/home/ire/code/learn/ire-test/src/Proxy" new-src)
     (check ($ chmod +x Runner))
     (log/debug "launching runner ...")
     (let [pb (->

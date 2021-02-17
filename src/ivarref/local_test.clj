@@ -32,7 +32,10 @@
         (cond (= "ready!" server-op!)
               (do
                 (log/info "remote server is ready!")
-                (deliver push-ready nil))))
+                (deliver push-ready nil))
+
+              :else
+              (log/warn "unhandled server-op" server-op!)))
       (fn [byte-chunk]
         (assert (bytes? byte-chunk))
         (let [new-chunks (swap! chunks conj byte-chunk)
@@ -40,7 +43,7 @@
               percentage (double (/ (* 100 new-length) (alength byt)))]
           (log/info "received byte chunk of length" (alength byte-chunk)
                     ","
-                    (format "%.1f%%" percentage) "done!")
+                    (format "%.1f%%" percentage) "done! Total so far:" new-length)
           (when (= (alength byt) new-length)
             (log/info "delivering...")
             (deliver p (byte-array (mapcat seq new-chunks)))))))
@@ -49,8 +52,8 @@
     (log/info "client waiting for push-ready... OK!")
     @(s/put! ws (wu/ws-map {:host "127.0.0.1" :port "2222" :logPort "12345"}))
     (log/info "pushing a total of" (count (seq byt)) "bytes ...")
-    (doseq [chunk (partition-all 4096 (seq byt))]
-      (log/debug "pushing chunk of" (count chunk) "bytes")
+    (doseq [chunk (partition-all 1024 (seq byt))]
+      #_(log/info "pushing chunk of" (count chunk) "bytes")
       (assert (true? @(s/put! ws (wu/ws-enc (byte-array (vec chunk)))))))
     (log/info "done pushing!")
     @p

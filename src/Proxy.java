@@ -99,7 +99,7 @@ public class Proxy {
                 Thread readStdin = new Thread() {
                     public void run() {
                         try {
-                            readStdinLoop(running, in, toSocket);
+                            readStdinLoop(running, out, in, toSocket);
                         } catch (Throwable t) {
                             debug("error in stdin read loop: " + t.getMessage());
                         }
@@ -165,9 +165,8 @@ public class Proxy {
         return Integer.parseInt(line, 2);
     }
 
-    private static void readStdinLoop(AtomicBoolean running, BufferedReader in, OutputStream toSocket) throws IOException {
+    private static void readStdinLoop(AtomicBoolean running, BufferedWriter out, BufferedReader in, OutputStream toSocket) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        int counter = 0;
         while (running.get()) {
             String line = in.readLine();
             if (line == null) {
@@ -177,17 +176,16 @@ public class Proxy {
                 if (line.length() == 8) {
                     int b = parseLine(line);
                     baos.write(b);
-                    counter += 1;
                 } else if (line.equalsIgnoreCase("$")) {
-                    toSocket.write(baos.toByteArray());
+                    byte[] b = baos.toByteArray();
+                    toSocket.write(b);
                     toSocket.flush();
-                    debug("wrote chunk of length " + counter + " to socket");
-                    counter = 0;
+                    debug("wrote chunk of length " + b.length + " to socket");
+                    writeCmd(out, "chunk-ok");
                     baos = new ByteArrayOutputStream();
                 } else if (line.equalsIgnoreCase("$$")) {
                     String cmd = new String(baos.toByteArray(), StandardCharsets.UTF_8);
                     baos = new ByteArrayOutputStream();
-                    counter = 0;
                     if (cmd.equalsIgnoreCase("close!")) {
                         debug("close requested from remote");
                         running.set(false);
@@ -200,16 +198,29 @@ public class Proxy {
         debug("stdin loop exiting");
     }
 
-    private static void readSocketLoop(AtomicBoolean running, BufferedWriter out, InputStream fromSocket) throws IOException {
+    private static synchronized void writeOut(BufferedWriter out, String message) {
+        try {
+            out.write(message + "\n");
+            out.flush();
+        } catch (IOException e) {
+            debug("error during writing to out: " + e.getMessage());
+        }
+    }
+
+    private static synchronized void writeCmd(BufferedWriter out, String cmd) {
+        Base64.Encoder encoder = Base64.getMimeEncoder();
+        writeOut(out, encoder.encodeToString(cmd.getBytes(StandardCharsets.UTF_8)) + "^");
+    }
+
+
+        private static void readSocketLoop(AtomicBoolean running, BufferedWriter out, InputStream fromSocket) throws IOException {
         byte[] buf = new byte[65535];
         Base64.Encoder encoder = Base64.getMimeEncoder();
         while (running.get()) {
             int read = fromSocket.read(buf);
             if (read != 1) {
                 String chunk = encoder.encodeToString(Arrays.copyOf(buf, read)).trim();
-                out.write(chunk);
-                out.write("#\n");
-                out.flush();
+                writeOut(out, chunk + "#");
                 debug("got chunk of " + read + " bytes from socket");
             } else {
                 debug("read socket closed");
