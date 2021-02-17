@@ -5,7 +5,7 @@
   (:import (java.nio.charset StandardCharsets)
            (java.util Base64)))
 
-(defn ws-enc [byt]
+(defn ws-enc-inner [byt remote-cmd?]
   (assert (bytes? byt))
   (let [sb (StringBuilder.)]
     (doseq [b (seq byt)]
@@ -15,8 +15,17 @@
                              (str/replace "1" "!"))]
         (.append sb byte-bin-str)
         (.append sb "\n")))
+    (when remote-cmd?
+      (.append sb "$"))
     (.append sb "$\n")
     (.toString sb)))
+
+(defn ws-enc [byt]
+  (ws-enc-inner byt false))
+
+(defn ws-enc-remote-cmd [cmd]
+  (assert (string? cmd))
+  (ws-enc-inner (.getBytes cmd StandardCharsets/UTF_8) true))
 
 (defn ws-map [m]
   (assert (map? m))

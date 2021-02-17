@@ -184,7 +184,7 @@ public class Proxy {
                     String cmd = new String(baos.toByteArray(), StandardCharsets.UTF_8);
                     baos.reset();
                     counter = 0;
-                    if (cmd.equalsIgnoreCase("close")) {
+                    if (cmd.equalsIgnoreCase("close!")) {
                         debug("close requested from remote");
                         running.set(false);
                     } else {

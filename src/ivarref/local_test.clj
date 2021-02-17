@@ -35,6 +35,7 @@
       (log/info "pushing chunk of" (count chunk) "bytes")
       @(s/put! ws (wu/ws-enc (byte-array (vec chunk)))))
     @p
+    @(s/put! ws (wu/ws-enc-remote-cmd "close!"))
     (s/close! ws)
     (assert (= (seq @p) (seq byt))
             "round trip test failed!")
@@ -57,5 +58,5 @@
   (do
     ;(clear)
     (test-round-trip
-      (az-websocket)
+      (local-websocket)
       (.getBytes "Hello World !abcæøåðÿ!" StandardCharsets/UTF_8))))
