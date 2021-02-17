@@ -31,7 +31,7 @@
        (s/reduce (fn [so-far byt]
                    (if (= 10 byt)
                      (do
-                       (log/info "log-server:" (String. (byte-array so-far) StandardCharsets/UTF_8))
+                       (log/debug "log-server:" (String. (byte-array so-far) StandardCharsets/UTF_8))
                        [])
                      (conj so-far byt)))
                  [])))

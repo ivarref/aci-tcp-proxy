@@ -179,10 +179,10 @@ public class Proxy {
                     toSocket.flush();
                     debug("wrote chunk of length " + counter + " to socket");
                     counter = 0;
-                    baos.reset();
+                    baos = new ByteArrayOutputStream();
                 } else if (line.equalsIgnoreCase("$$")) {
                     String cmd = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-                    baos.reset();
+                    baos = new ByteArrayOutputStream();
                     counter = 0;
                     if (cmd.equalsIgnoreCase("close!")) {
                         debug("close requested from remote");

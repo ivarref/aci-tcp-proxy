@@ -26,9 +26,10 @@
         (deliver p nil)
         (log/debug "websocket client closed")))
     (wu/mime-consumer! ws (fn [byte-chunk]
-
+                            (assert (bytes? byte-chunk))
+                            (log/info "mime-consumer running...")
                             (let [new-chunks (swap! chunks conj byte-chunk)
-                                  new-length (reduce + 0 (map alength new-chunks))
+                                  new-length (reduce + 0 (mapv alength new-chunks))
                                   missing-bytes (- (alength byt) new-length)
                                   percentage (double (/ (* 100 new-length) (alength byt)))]
                               (log/info "received byte chunk of length" (alength byte-chunk)
@@ -66,7 +67,6 @@
 
 (comment
   (do
-    (clear)
     (test-round-trip
       (local-websocket)
       (.getBytes

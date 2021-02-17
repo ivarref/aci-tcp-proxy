@@ -52,7 +52,12 @@
     (= chr \#)
     (let [decoded (.decode (Base64/getMimeDecoder) ^String so-far)]
       (log/info "consuming" (alength decoded) "bytes...")
-      (cb decoded)
+      (try
+        (cb decoded)
+        (catch Throwable t
+          (log/error t "error in mime-consumer cb")
+          (log/error "error message was:" (ex-message t))))
+      (log/info "consuming" (alength decoded) "bytes... OK!")
       "")
 
     ; build up mime chunk
