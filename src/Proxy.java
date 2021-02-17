@@ -162,6 +162,7 @@ public class Proxy {
     }
 
     private static void readStdinLoop(AtomicBoolean running, BufferedReader in, OutputStream toSocket) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
         int counter = 0;
         while (running.get()) {
             String line = in.readLine();
@@ -171,18 +172,24 @@ public class Proxy {
                 line = line.trim();
                 if (line.length() == 8) {
                     int b = parseLine(line);
-                    try {
-                        toSocket.write(b);
-                        counter += 1;
-                    } catch (Exception e) {
-                        debug("writing to socket failed!: " + e.getMessage());
-                        throw e;
-                    }
+                    baos.write(b);
+                    counter += 1;
                 } else if (line.equalsIgnoreCase("$")) {
-                    trace("flushing socket...");
+                    toSocket.write(baos.toByteArray());
                     toSocket.flush();
                     debug("wrote chunk of length " + counter + " to socket");
                     counter = 0;
+                    baos.reset();
+                } else if (line.equalsIgnoreCase("$$")) {
+                    String cmd = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+                    baos.reset();
+                    counter = 0;
+                    if (cmd.equalsIgnoreCase("close")) {
+                        debug("close requested from remote");
+                        running.set(false);
+                    } else {
+                        debug("unhandled remote command: " + cmd);
+                    }
                 }
             }
         }
