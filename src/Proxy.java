@@ -177,7 +177,7 @@ public class Proxy {
                 } else if (line.equalsIgnoreCase("$")) {
                     toSocket.write(baos.toByteArray());
                     toSocket.flush();
-                    debug("wrote chunk of length " + counter + " to socket");
+                    trace("wrote chunk of length " + counter + " to socket");
                     counter = 0;
                     baos.reset();
                 } else if (line.equalsIgnoreCase("$$")) {
@@ -206,7 +206,7 @@ public class Proxy {
                 out.write(chunk);
                 out.write("#\n");
                 out.flush();
-                debug("got chunk of " + read + " bytes from socket");
+                trace("got chunk of " + read + " bytes from socket");
             } else {
                 debug("read socket closed");
                 running.set(false);
