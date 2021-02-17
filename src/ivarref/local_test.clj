@@ -5,6 +5,7 @@
             [clojure.tools.logging :as log]
             [babashka.process :refer [$ check]]
             [clojure.string :as str]
+            [ivarref.az-utils :as az-utils]
             [ivarref.ws-server])
   (:import (java.nio.charset StandardCharsets)
            (java.util Base64)))
@@ -68,12 +69,11 @@
                    (seq x)))
        (s/reduce (partial mime-reducer cb) "")))
 
-(defn test-round-trip [byt]
+(defn test-round-trip [ws byt]
   (assert (bytes? byt))
   (let [start-time (System/currentTimeMillis)
         chunks (atom [])
-        p (promise)
-        ws @(http/websocket-client "ws://localhost:3333")]
+        p (promise)]
     (log/debug "got websocket client!")
     (s/on-closed
       ws
@@ -99,8 +99,17 @@
       (log/info "round trip test OK in" spent-time "ms, " (format "%.1f" bytes-by-ms)
                 "kB/s! \uD83D\uDE3A \uD83D\uDE3B"))))
 
+(defn az-websocket []
+  (az-utils/get-websocket {:resource-group "rg-stage-we"
+                           :proxy-path     "/app/lib/Proxy"
+                           :container-name "aci-iretest*"}))
+
+(defn local-websocket []
+  @(http/websocket-client "ws://localhost:3333"))
+
+
 (comment
   (do
-    (clear)
-    (test-round-trip (.getBytes "Hello World !abcæøåðÿ!"
-                                StandardCharsets/UTF_8))))
+    ;(clear)
+    (test-round-trip (local-websocket)
+                     (.getBytes "Hello World !abcæøåðÿ!" StandardCharsets/UTF_8))))

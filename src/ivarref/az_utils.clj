@@ -69,7 +69,6 @@
                       :as   opts}]
   (log/info "creating remote proxy at" proxy-path "...")
   (let [subscriptionId (get-subscription-id opts)
-        resource-group resource-group
         container-group-name (get-container-name opts)
         container-name (get-container-name opts)
         token (access-token opts)
