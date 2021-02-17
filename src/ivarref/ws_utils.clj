@@ -51,13 +51,12 @@
     ; the char # marks end of mime chunk
     (= chr \#)
     (let [decoded (.decode (Base64/getMimeDecoder) ^String so-far)]
-      (log/info "consuming" (alength decoded) "bytes...")
+      (log/debug "consuming" (alength decoded) "bytes...")
       (try
         (cb decoded)
         (catch Throwable t
           (log/error t "error in mime-consumer cb")
           (log/error "error message was:" (ex-message t))))
-      (log/info "consuming" (alength decoded) "bytes... OK!")
       "")
 
     ; build up mime chunk
