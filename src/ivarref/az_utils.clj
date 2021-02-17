@@ -68,9 +68,8 @@
                              proxy-path]
                       :as   opts}]
   (log/info "creating remote proxy at" proxy-path "...")
-  (let [subscriptionId (get-subscription-id opts)
-        container-group-name (get-container-name opts)
-        container-name (get-container-name opts)
+  (let [subscriptionId (resolve-subscription-id opts)
+        container-group-name (resolve-container-name opts)
         token (access-token opts)
         ; POST https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ContainerInstance/containerGroups/{containerGroupName}/containers/{containerName}/exec?api-version=2019-12-01
         url (str "https://management.azure.com/subscriptions/"
@@ -80,7 +79,7 @@
                  "/providers/Microsoft.ContainerInstance/containerGroups/"
                  container-group-name
                  "/containers/"
-                 container-name
+                 container-group-name
                  "/exec?api-version=2019-12-01")
         resp @(http/post url {:headers {"authorization" (str "Bearer " token)
                                         "content-type"  "application/json"}
