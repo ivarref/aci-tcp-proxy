@@ -19,7 +19,15 @@
   (let [start-time (System/currentTimeMillis)
         chunks (atom [])
         p (promise)
-        push-ready (promise)]
+        push-ready (atom (promise))
+        push-ready! (fn []
+                      (let [new-promise (promise)]
+                        (log/debug "remote server is ready!")
+                        (swap! push-ready
+                               (fn [old-value]
+                                 (deliver old-value nil)
+                                 new-promise))))]
+
     (log/debug "got websocket client!")
     (s/on-closed
       ws
@@ -30,9 +38,10 @@
       ws
       (fn [server-op!]
         (cond (= "ready!" server-op!)
-              (do
-                (log/info "remote server is ready!")
-                (deliver push-ready nil))
+              (push-ready!)
+
+              (= "chunk-ok" server-op!)
+              (push-ready!)
 
               :else
               (log/warn "unhandled server-op" server-op!)))
@@ -48,13 +57,13 @@
             (log/info "delivering...")
             (deliver p (byte-array (mapcat seq new-chunks)))))))
     (log/info "client waiting for push-ready...")
-    @push-ready
+    @@push-ready
     (log/info "client waiting for push-ready... OK!")
     @(s/put! ws (wu/ws-map {:host "127.0.0.1" :port "2222" :logPort "12345"}))
     (log/info "pushing a total of" (count (seq byt)) "bytes ...")
     (doseq [chunk (partition-all 1024 (seq byt))]
-      #_(log/info "pushing chunk of" (count chunk) "bytes")
-      (assert (true? @(s/put! ws (wu/ws-enc (byte-array (vec chunk)))))))
+      (assert (true? @(s/put! ws (wu/ws-enc (byte-array (vec chunk))))))
+      @@push-ready)
     (log/info "done pushing!")
     @p
     (log/info "got all chunks, closing!")
