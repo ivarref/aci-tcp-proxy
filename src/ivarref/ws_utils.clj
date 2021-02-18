@@ -112,7 +112,7 @@
 
     (= "chunk-ok" server-op!)
     (do
-      (log/info "got chunk-ok!")
+      (log/debug "got chunk-ok!")
       (async/>!! ready-chan :chunk-ok))
 
     :else

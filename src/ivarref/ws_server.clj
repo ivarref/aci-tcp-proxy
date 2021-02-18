@@ -52,7 +52,7 @@
                                              {:consume-stdout
                                               (fn [lin]
                                                 #_(log/info "got line from proxy:" lin)
-                                                @(s/put! ws (str lin "\n")))})]
+                                                (assert (true? @(s/put! ws (str lin "\n")))))})]
     (s/on-closed ws
                  (fn [& args]
                    (log/debug "websocket closed, closing proxy")

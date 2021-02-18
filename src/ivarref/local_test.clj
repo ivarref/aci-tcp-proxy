@@ -11,6 +11,12 @@
             [clojure.core.async :as async])
   (:import (java.nio.charset StandardCharsets)))
 
+(Thread/setDefaultUncaughtExceptionHandler
+  (reify Thread$UncaughtExceptionHandler
+    (uncaughtException [_ thread ex]
+      (log/error ex "Uncaught exception on" (.getName thread))
+      (log/error "error message was:" (ex-message ex)))))
+
 (defn clear []
   (.print System/out "\033[H\033[2J")
   (.flush System/out))
@@ -47,7 +53,7 @@
     @(s/put! ws (wu/ws-map {:host "127.0.0.1" :port "2222" :logPort "12345"}))
     (log/info "pushing a total of" (count (seq byt)) "bytes ...")
     (doseq [chunk (partition-all 1024 (seq byt))]
-      (log/info "pushing chunk...")
+      (log/debug "pushing chunk...")
       (assert (true? @(s/put! ws (wu/ws-enc (byte-array (vec chunk))))))
       (async/<!! push-ready))
     (log/info "done pushing!")
