@@ -10,14 +10,16 @@
 
 (defn echo-handler [s info]
   (log/debug "new connection for echo handler")
+  (s/on-closed
+    s
+    (fn [& args]
+      (log/debug "echo handler is closed!")))
   (s/consume
     (fn [byt]
       (assert (bytes? byt))
-      (log/info "echo handler received chunk of" (alength byt) "bytes")
-      (assert (true? @(s/put! s byt)))
-      (log/info "sleeping...")
-      (Thread/sleep 3000)
-      (log/info "sleeping... done"))
+      (log/debug "echo handler received chunk of" (alength byt) "bytes")
+      (when (false? @(s/put! s byt))
+        (log/error "could not write to socket!")))
     s))
 
 (defonce
