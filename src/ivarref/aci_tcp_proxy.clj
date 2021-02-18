@@ -42,8 +42,9 @@
     (s/consume
       (fn [byt]
         (assert (bytes? byt))
-        @(s/put! ws (wu/ws-enc byt))
-        (async/<!! push-ready))
+        (doseq [chunk (partition-all 1024 (seq byt))]
+          (assert (true? @(s/put! ws (wu/ws-enc (byte-array (vec chunk))))))
+          (async/<!! push-ready)))
       local)))
 
 (defn handler [{:keys [remote-host remote-port] :as opts} sock _info]

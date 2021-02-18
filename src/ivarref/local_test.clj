@@ -74,7 +74,7 @@
 (comment
   (do
     (test-round-trip
-      (az-websocket)
+      (local-websocket)
       (.getBytes
         (str/join "\n" (repeat 40000 "Hello World !abcæøåðÿ!"))
         StandardCharsets/UTF_8))))
