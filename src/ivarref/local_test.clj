@@ -19,15 +19,7 @@
   (let [start-time (System/currentTimeMillis)
         chunks (atom [])
         p (promise)
-        push-ready (atom (promise))
-        push-ready! (fn []
-                      (let [new-promise (promise)]
-                        (log/debug "remote server is ready!")
-                        (swap! push-ready
-                               (fn [old-value]
-                                 (deliver old-value nil)
-                                 new-promise))))]
-
+        push-ready (atom (promise))]
     (log/debug "got websocket client!")
     (s/on-closed
       ws
@@ -36,15 +28,7 @@
         (log/debug "websocket client closed")))
     (wu/mime-consumer!
       ws
-      (fn [server-op!]
-        (cond (= "ready!" server-op!)
-              (push-ready!)
-
-              (= "chunk-ok" server-op!)
-              (push-ready!)
-
-              :else
-              (log/warn "unhandled server-op" server-op!)))
+      (partial wu/handle-server-op push-ready)
       (fn [byte-chunk]
         (assert (bytes? byte-chunk))
         (let [new-chunks (swap! chunks conj byte-chunk)

@@ -104,3 +104,18 @@
                    (seq x)))
        (s/reduce (partial mime-reducer srv-cb cb) "")))
 
+(defn handle-server-op [push-ready server-op!]
+  (cond
+    (= "ready!" server-op!)
+    (deliver @push-ready :ready)
+
+    (= "chunk-ok" server-op!)
+    (let [new-promise (promise)]
+      (log/debug "remote server is ready for new chunk!")
+      (swap! push-ready
+             (fn [old-promise]
+               (deliver old-promise nil)
+               new-promise)))
+
+    :else
+    (log/warn "unhandled server-op" server-op!)))

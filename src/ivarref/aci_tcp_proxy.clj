@@ -26,29 +26,33 @@
       (log/info "remote closed connection")
       (s/close! local))))
 
-(defn proxy-handler [local ws]
+(defn proxy-handler [local ws config]
   (log/info "setting up proxy between local socket and remote websocket")
   (add-close-handlers local ws)
-  (s/consume
-    (fn [byt]
-      (assert (bytes? byt))
-      @(s/put! ws (wu/ws-enc byt)))
-    local)
-  (wu/mime-consumer!
-    ws
-    (fn [byte-chunk]
-      (assert (bytes? byte-chunk))
-      @(s/put! local byte-chunk))))
+  (let [push-ready (atom (promise))]
+    (wu/mime-consumer!
+      ws
+      (partial wu/handle-server-op push-ready)
+      (fn [byte-chunk]
+        (assert (bytes? byte-chunk))
+        @(s/put! local byte-chunk)))
+    @@push-ready
+    @(s/put! ws (wu/ws-map config))
+    (s/consume
+      (fn [byt]
+        (assert (bytes? byt))
+        @(s/put! ws (wu/ws-enc byt))
+        @@push-ready)
+      local)))
 
 (defn handler [{:keys [remote-host remote-port] :as opts} sock _info]
   (log/info "starting new connection ...")
   (if-let [websock (az-utils/get-websocket opts)]
     (do
       (log/info "established, configuring ...")
-      @(s/put! websock (wu/ws-map {:host    remote-host
+      (proxy-handler sock websock {:host    remote-host
                                    :port    (str remote-port)
                                    :logPort "12345"}))
-      (proxy-handler sock websock))
     (do
       (log/error "could not get websocket, aborting!")
       (s/close! sock))))
