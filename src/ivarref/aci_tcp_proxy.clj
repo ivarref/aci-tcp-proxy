@@ -5,7 +5,8 @@
             [ivarref.az-utils :as az-utils]
             [aleph.netty :as netty]
             [manifold.stream :as s]
-            [ivarref.ws-utils :as wu])
+            [ivarref.ws-utils :as wu]
+            [clojure.core.async :as async])
   (:import (java.net InetSocketAddress)))
 
 (defn not-empty-string [s]
@@ -29,20 +30,20 @@
 (defn proxy-handler [local ws config]
   (log/info "setting up proxy between local socket and remote websocket")
   (add-close-handlers local ws)
-  (let [push-ready (atom (promise))]
+  (let [push-ready (async/chan)]
     (wu/mime-consumer!
       ws
       (partial wu/handle-server-op push-ready)
       (fn [byte-chunk]
         (assert (bytes? byte-chunk))
         @(s/put! local byte-chunk)))
-    @@push-ready
+    (async/<!! push-ready)
     @(s/put! ws (wu/ws-map config))
     (s/consume
       (fn [byt]
         (assert (bytes? byt))
         @(s/put! ws (wu/ws-enc byt))
-        @@push-ready)
+        (async/<!! push-ready))
       local)))
 
 (defn handler [{:keys [remote-host remote-port] :as opts} sock _info]
