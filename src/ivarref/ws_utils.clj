@@ -1,7 +1,8 @@
 (ns ivarref.ws-utils
   (:require [clojure.string :as str]
             [clojure.tools.logging :as log]
-            [manifold.stream :as s])
+            [manifold.stream :as s]
+            [clojure.core.async :as async])
   (:import (java.nio.charset StandardCharsets)
            (java.util Base64)))
 
@@ -104,18 +105,13 @@
                    (seq x)))
        (s/reduce (partial mime-reducer srv-cb cb) "")))
 
-(defn handle-server-op [push-ready server-op!]
+(defn handle-server-op [ready-chan server-op!]
   (cond
     (= "ready!" server-op!)
-    (deliver @push-ready :ready)
+    (async/>!! ready-chan :ready)
 
     (= "chunk-ok" server-op!)
-    (let [new-promise (promise)]
-      (log/debug "remote server is ready for new chunk!")
-      (swap! push-ready
-             (fn [old-promise]
-               (deliver old-promise nil)
-               new-promise)))
+    (async/>!! ready-chan :chunk-ok)
 
     :else
     (log/warn "unhandled server-op" server-op!)))

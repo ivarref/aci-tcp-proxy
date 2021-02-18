@@ -7,7 +7,8 @@
             [clojure.string :as str]
             [ivarref.az-utils :as az-utils]
             [ivarref.ws-utils :as wu]
-            [ivarref.ws-server])
+            [ivarref.ws-server]
+            [clojure.core.async :as async])
   (:import (java.nio.charset StandardCharsets)))
 
 (defn clear []
@@ -19,7 +20,7 @@
   (let [start-time (System/currentTimeMillis)
         chunks (atom [])
         p (promise)
-        push-ready (atom (promise))]
+        push-ready (async/chan)]
     (log/debug "got websocket client!")
     (s/on-closed
       ws
@@ -41,13 +42,13 @@
             (log/info "delivering...")
             (deliver p (byte-array (mapcat seq new-chunks)))))))
     (log/info "client waiting for push-ready...")
-    @@push-ready
+    (async/<!! push-ready)
     (log/info "client waiting for push-ready... OK!")
     @(s/put! ws (wu/ws-map {:host "127.0.0.1" :port "2222" :logPort "12345"}))
     (log/info "pushing a total of" (count (seq byt)) "bytes ...")
     (doseq [chunk (partition-all 1024 (seq byt))]
       (assert (true? @(s/put! ws (wu/ws-enc (byte-array (vec chunk))))))
-      @@push-ready)
+      (async/<!! push-ready))
     (log/info "done pushing!")
     @p
     (log/info "got all chunks, closing!")
@@ -73,7 +74,7 @@
 (comment
   (do
     (test-round-trip
-      (local-websocket)
+      (az-websocket)
       (.getBytes
-        (str/join "\n" (repeat 4000 "Hello World !abcæøåðÿ!"))
+        (str/join "\n" (repeat 40000 "Hello World !abcæøåðÿ!"))
         StandardCharsets/UTF_8))))
