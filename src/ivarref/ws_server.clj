@@ -13,8 +13,11 @@
   (s/consume
     (fn [byt]
       (assert (bytes? byt))
-      (log/debug "echo handler received chunk of" (alength byt) "bytes")
-      @(s/put! s byt))
+      (log/info "echo handler received chunk of" (alength byt) "bytes")
+      (assert (true? @(s/put! s byt)))
+      (log/info "sleeping...")
+      (Thread/sleep 3000)
+      (log/info "sleeping... done"))
     s))
 
 (defonce

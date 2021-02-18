@@ -111,7 +111,9 @@
     (async/>!! ready-chan :ready)
 
     (= "chunk-ok" server-op!)
-    (async/>!! ready-chan :chunk-ok)
+    (do
+      (log/info "got chunk-ok!")
+      (async/>!! ready-chan :chunk-ok))
 
     :else
     (log/warn "unhandled server-op" server-op!)))

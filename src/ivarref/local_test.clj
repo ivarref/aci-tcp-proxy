@@ -47,6 +47,7 @@
     @(s/put! ws (wu/ws-map {:host "127.0.0.1" :port "2222" :logPort "12345"}))
     (log/info "pushing a total of" (count (seq byt)) "bytes ...")
     (doseq [chunk (partition-all 1024 (seq byt))]
+      (log/info "pushing chunk...")
       (assert (true? @(s/put! ws (wu/ws-enc (byte-array (vec chunk))))))
       (async/<!! push-ready))
     (log/info "done pushing!")
@@ -76,5 +77,5 @@
     (test-round-trip
       (local-websocket)
       (.getBytes
-        (str/join "\n" (repeat 40000 "Hello World !abcæøåðÿ!"))
+        (str/join "\n" (repeat 4000 "Hello World !abcæøåðÿ!"))
         StandardCharsets/UTF_8))))
