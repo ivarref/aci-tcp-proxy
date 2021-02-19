@@ -124,17 +124,30 @@
     (async/>!! c :c)
     (read-many c)))
 
-(defn push-loop [push-lock push-ready pending-chunks ws pending-counter]
+(defn push-loop [push-lock push-ready pending-chunks ws pending-counter last-push-ms]
   (if-let [byt (read-many pending-chunks pending-counter)]
-    (do
-      (doseq [chunk (partition-all 8192 (mapcat seq byt))]
-        (locking push-lock
-          #_(log/info "pushing chunk to remote... str-length=" (count (ws-enc (byte-array (vec chunk)))))
-          (assert (true? @(s/put! ws (ws-enc (byte-array (vec chunk))))))
-          #_(log/info "waiting for ack...")
-          (async/<!! push-ready))
-        (log/info "pushed chunk of length" (count chunk) "to remote and received ack"))
-      (recur push-lock push-ready pending-chunks ws pending-counter))
+    (cond (and (empty? byt)
+               (>= (- (System/currentTimeMillis) last-push-ms) 30000))
+          (do
+            (log/info "no action, keeping connection alive...")
+            (locking push-lock
+              (assert (true? @(s/put! ws (ws-enc (byte-array [])))))
+              (async/<!! push-ready))
+            (recur push-lock push-ready pending-chunks ws pending-counter (System/currentTimeMillis)))
+
+          (empty? byt)
+          (recur push-lock push-ready pending-chunks ws pending-counter last-push-ms)
+
+          :else
+          (do
+            (doseq [chunk (partition-all 8192 (mapcat seq byt))]
+              (locking push-lock
+                #_(log/info "pushing chunk to remote... str-length=" (count (ws-enc (byte-array (vec chunk)))))
+                (assert (true? @(s/put! ws (ws-enc (byte-array (vec chunk))))))
+                #_(log/info "waiting for ack...")
+                (async/<!! push-ready))
+              (log/info "pushed chunk of length" (count chunk) "to remote and received ack"))
+            (recur push-lock push-ready pending-chunks ws pending-counter (System/currentTimeMillis))))
     (do
       (log/info "push-loop exiting"))))
 
@@ -172,6 +185,6 @@
       (log/info "push loop starting...")
       (future
         (try
-          (push-loop push-lock push-ready pending-chunks ws pending-counter)
+          (push-loop push-lock push-ready pending-chunks ws pending-counter (System/currentTimeMillis))
           (catch Throwable t
             (log/error "push loop crashed:" (ex-message t))))))))
