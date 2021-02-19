@@ -127,9 +127,11 @@
 (defn push-loop [push-lock push-ready pending-chunks ws pending-counter]
   (if-let [byt (read-many pending-chunks pending-counter)]
     (do
-      (doseq [chunk (partition-all 65535 (mapcat seq byt))]
+      (doseq [chunk (partition-all 8192 (mapcat seq byt))]
         (locking push-lock
+          #_(log/info "pushing chunk to remote... str-length=" (count (ws-enc (byte-array (vec chunk)))))
           (assert (true? @(s/put! ws (ws-enc (byte-array (vec chunk))))))
+          #_(log/info "waiting for ack...")
           (async/<!! push-ready))
         (log/info "pushed chunk of length" (count chunk) "to remote and received ack"))
       (recur push-lock push-ready pending-chunks ws pending-counter))

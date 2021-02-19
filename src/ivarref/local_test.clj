@@ -30,7 +30,7 @@
 (defn local-websocket []
   @(http/websocket-client "ws://localhost:3333"))
 
-(def get-ws local-websocket)
+(def get-ws az-websocket)
 
 (defn tunnel-handler [sock]
   (log/debug "new connection for echo handler")
@@ -74,9 +74,8 @@
 
 (comment
   (round-trip-2 (.getBytes
-                  (str/join "\n" (repeat 100 "Hello World !abcæøåðÿ!"))
+                  (str/join "\n" (repeat 80000 "Hello World !abcæøåðÿ!"))
                   StandardCharsets/UTF_8)))
-
 
 (defn test-round-trip [ws byt]
   (assert (bytes? byt))
