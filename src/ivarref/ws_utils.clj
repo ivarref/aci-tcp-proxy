@@ -56,7 +56,7 @@
     ; the char # marks end of mime chunk
     (= chr \#)
     (let [decoded (.decode (Base64/getMimeDecoder) ^String so-far)]
-      (log/info "consuming" (alength decoded) "bytes...")
+      (log/debug "consuming" (alength decoded) "bytes...")
       (try
         (cb decoded)
         (catch Throwable t
@@ -66,7 +66,7 @@
 
     (= chr \^)
     (let [decoded (.decode (Base64/getMimeDecoder) ^String so-far)]
-      (log/info "consuming" (alength decoded) "bytes...")
+      (log/debug "consuming" (alength decoded) "bytes...")
       (try
         (srv-op-cb (String. decoded StandardCharsets/UTF_8))
         (catch Throwable t
