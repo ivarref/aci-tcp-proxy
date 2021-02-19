@@ -114,16 +114,12 @@
     (do
       (log/info "push-loop exiting"))))
 
-(defn redir-handler [local ws config]
+(defn redir-handler [local ws-delayed config]
   (let [push-ready (async/chan)
         pending-chunks (async/chan 10000)
         pending-counter (atom 0)
         push-lock (Object.)]
-    (s/on-closed local (fn [& args]
-                         (locking push-lock
-                           @(s/put! ws (ws-enc-remote-cmd "close!")))
-                         (async/close! pending-chunks)))
-    (s/on-closed ws (fn [& args] (async/close! pending-chunks)))
+    (log/info "setting up local consumer...")
     (s/consume
       (fn [byte-chunk]
         (assert (bytes? byte-chunk))
@@ -131,16 +127,23 @@
           (log/info "pending counter:" pending-cnt))
         (async/>!! pending-chunks byte-chunk))
       local)
-    (mime-consumer! ws
-                    (partial handle-server-op push-ready)
-                    (fn [byte-chunk]
-                      (assert (bytes? byte-chunk))
-                      (log/info "received chunk of" (alength byte-chunk) "from remote")
-                      (if (false? @(s/put! local byte-chunk))
-                        (log/error "could not push byte chunk to local"))))
-    (log/info "waiting for remote ready...")
-    (async/<!! push-ready)
-    @(s/put! ws (ws-map config))
-    (log/info "pushed config!")
-    (log/info "push loop starting...")
-    (future (push-loop push-lock push-ready pending-chunks ws pending-counter))))
+    (s/on-closed local (fn [& args]
+                         (locking push-lock
+                           @(s/put! @ws-delayed (ws-enc-remote-cmd "close!")))
+                         (async/close! pending-chunks)))
+    (log/info "dereffing websocket")
+    (let [ws @ws-delayed]
+      (s/on-closed ws (fn [& args] (async/close! pending-chunks)))
+      (mime-consumer! ws
+                      (partial handle-server-op push-ready)
+                      (fn [byte-chunk]
+                        (assert (bytes? byte-chunk))
+                        (log/info "received chunk of" (alength byte-chunk) "from remote")
+                        (if (false? @(s/put! local byte-chunk))
+                          (log/error "could not push byte chunk to local"))))
+      (log/info "waiting for remote ready...")
+      (async/<!! push-ready)
+      @(s/put! ws (ws-map config))
+      (log/info "pushed config!")
+      (log/info "push loop starting...")
+      (future (push-loop push-lock push-ready pending-chunks ws pending-counter)))))

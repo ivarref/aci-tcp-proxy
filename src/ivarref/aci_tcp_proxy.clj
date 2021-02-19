@@ -14,7 +14,7 @@
 
 (defn handler [{:keys [remote-host remote-port] :as opts} sock _info]
   (log/info "starting new connection ...")
-  (if-let [websock (az-utils/get-websocket opts)]
+  (if-let [websock (delay (az-utils/get-websocket opts))]
     (do
       (wu/redir-handler sock websock {:host    remote-host
                                       :port    (str remote-port)
