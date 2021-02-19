@@ -127,7 +127,7 @@
         (locking push-lock
           (assert (true? @(s/put! ws (ws-enc (byte-array (vec chunk))))))
           (async/<!! push-ready))
-        (log/info "pushed chunk to remote and received ack"))
+        (log/info "pushed chunk of length" (alength chunk) "to remote and received ack"))
       (recur push-lock push-ready pending-chunks ws pending-counter))
     (do
       (log/info "push-loop exiting"))))
@@ -153,6 +153,7 @@
                     (partial handle-server-op push-ready)
                     (fn [byte-chunk]
                       (assert (bytes? byte-chunk))
+                      (log/info "received chunk of" (alength byte-chunk) "from remote")
                       (if (false? @(s/put! local byte-chunk))
                         (log/error "could not push byte chunk to local"))))
     (log/info "waiting for remote ready...")
