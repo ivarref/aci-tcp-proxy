@@ -109,7 +109,7 @@
         (locking push-lock
           (assert (true? @(s/put! ws (ws-enc (byte-array (vec chunk))))))
           (async/<!! push-ready))
-        (log/info "pushed chunk of length" (alength chunk) "to remote and received ack"))
+        (log/info "pushed chunk of length" (count chunk) "to remote and received ack"))
       (recur push-lock push-ready pending-chunks ws pending-counter))
     (do
       (log/info "push-loop exiting"))))
@@ -146,4 +146,8 @@
       @(s/put! ws (ws-map config))
       (log/info "pushed config!")
       (log/info "push loop starting...")
-      (future (push-loop push-lock push-ready pending-chunks ws pending-counter)))))
+      (future
+        (try
+          (push-loop push-lock push-ready pending-chunks ws pending-counter)
+          (catch Throwable t
+            (log/error "push loop crashed:" (ex-message t))))))))
