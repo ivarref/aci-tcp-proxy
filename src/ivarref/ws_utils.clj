@@ -101,11 +101,33 @@
     (log/warn "unhandled server-op" server-op!)))
 
 
+(defn read-many [chan pending-counter]
+  (let [timeout (async/timeout 100)]
+    (loop [so-far []]
+      (let [[v ch] (async/alts!! [chan timeout])]
+        (cond
+          v
+          (do
+            (swap! pending-counter dec)
+            (recur (conj so-far v)))
+
+          (= ch chan)
+          nil
+
+          :else
+          so-far)))))
+
+(comment
+  (let [c (async/chan 10)]
+    (async/>!! c :a)
+    (async/>!! c :b)
+    (async/>!! c :c)
+    (read-many c)))
+
 (defn push-loop [push-lock push-ready pending-chunks ws pending-counter]
-  (if-let [byt (async/<!! pending-chunks)]
+  (if-let [byt (read-many pending-chunks pending-counter)]
     (do
-      (swap! pending-counter dec)
-      (doseq [chunk (partition-all 1024 (seq byt))]
+      (doseq [chunk (partition-all 65535 (mapcat seq byt))]
         (locking push-lock
           (assert (true? @(s/put! ws (ws-enc (byte-array (vec chunk))))))
           (async/<!! push-ready))
