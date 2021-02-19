@@ -11,24 +11,6 @@
 (defn to-hex-nibble [b]
   (nth alphabet b))
 
-#_(defn ws-enc-two [byt]
-    (let [sb (StringBuilder.)]
-      (doseq [chunk (partition-all 38 (seq byt))]
-        (doseq [byt chunk]
-          (let [byt (bit-and 0xff byt)]
-            (.append sb (to-hex-nibble (bit-shift-right byt 4)))
-            (.append sb (to-hex-nibble (bit-and 0xf byt)))))
-        (.append sb "\n"))
-      (.toString sb)))
-
-#_(comment
-    (do
-      (print (ws-enc-two (.getBytes (str "asdfasffasdfasfdfasdfa"
-                                         "asdfasffasdfasfdfasdfa"
-                                         "dfasdfasdfasdfasdfasdfasdfabcabcabcHello World !abcæøåðÿ!")
-                                    StandardCharsets/ISO_8859_1)))
-      (println (str/join "" (repeat 80 "*")))))
-
 (defn ws-enc-inner [byt remote-cmd?]
   (assert (bytes? byt))
   (let [sb (StringBuilder.)]
@@ -134,7 +116,7 @@
 
 (defn redir-handler [local ws config]
   (let [push-ready (async/chan)
-        pending-chunks (async/chan 1000)
+        pending-chunks (async/chan 10000)
         pending-counter (atom 0)
         push-lock (Object.)]
     (s/on-closed local (fn [& args]
