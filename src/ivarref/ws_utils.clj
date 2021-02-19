@@ -74,7 +74,7 @@
     ; the char # marks end of mime chunk
     (= chr \#)
     (let [decoded (.decode (Base64/getMimeDecoder) ^String so-far)]
-      (log/debug "consuming" (alength decoded) "bytes...")
+      (log/info "consuming" (alength decoded) "bytes...")
       (try
         (cb decoded)
         (catch Throwable t
@@ -84,7 +84,7 @@
 
     (= chr \^)
     (let [decoded (.decode (Base64/getMimeDecoder) ^String so-far)]
-      (log/debug "consuming" (alength decoded) "bytes...")
+      (log/info "consuming" (alength decoded) "bytes...")
       (try
         (srv-op-cb (String. decoded StandardCharsets/UTF_8))
         (catch Throwable t
@@ -117,3 +117,47 @@
 
     :else
     (log/warn "unhandled server-op" server-op!)))
+
+
+(defn push-loop [push-lock push-ready pending-chunks ws pending-counter]
+  (if-let [byt (async/<!! pending-chunks)]
+    (do
+      (swap! pending-counter dec)
+      (doseq [chunk (partition-all 1024 (seq byt))]
+        (locking push-lock
+          (assert (true? @(s/put! ws (ws-enc (byte-array (vec chunk))))))
+          (async/<!! push-ready))
+        (log/info "pushed chunk to remote and received ack"))
+      (recur push-lock push-ready pending-chunks ws pending-counter))
+    (do
+      (log/info "push-loop exiting"))))
+
+(defn redir-handler [local ws config]
+  (let [push-ready (async/chan)
+        pending-chunks (async/chan 1000)
+        pending-counter (atom 0)
+        push-lock (Object.)]
+    (s/on-closed local (fn [& args]
+                         (locking push-lock
+                           @(s/put! ws (ws-enc-remote-cmd "close!")))
+                         (async/close! pending-chunks)))
+    (s/on-closed ws (fn [& args] (async/close! pending-chunks)))
+    (s/consume
+      (fn [byte-chunk]
+        (assert (bytes? byte-chunk))
+        (let [pending-cnt (swap! pending-counter inc)]
+          (log/info "pending counter:" pending-cnt))
+        (async/>!! pending-chunks byte-chunk))
+      local)
+    (mime-consumer! ws
+                    (partial handle-server-op push-ready)
+                    (fn [byte-chunk]
+                      (assert (bytes? byte-chunk))
+                      (if (false? @(s/put! local byte-chunk))
+                        (log/error "could not push byte chunk to local"))))
+    (log/info "waiting for remote ready...")
+    (async/<!! push-ready)
+    @(s/put! ws (ws-map config))
+    (log/info "pushed config!")
+    (log/info "push loop starting...")
+    (future (push-loop push-lock push-ready pending-chunks ws pending-counter))))

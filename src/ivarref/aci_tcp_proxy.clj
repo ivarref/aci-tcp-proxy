@@ -5,56 +5,20 @@
             [ivarref.az-utils :as az-utils]
             [aleph.netty :as netty]
             [manifold.stream :as s]
-            [ivarref.ws-utils :as wu]
-            [clojure.core.async :as async])
+            [ivarref.ws-utils :as wu])
   (:import (java.net InetSocketAddress)))
 
 (defn not-empty-string [s]
   (and (string? s)
        (not-empty s)))
 
-(defn add-close-handlers [local remote]
-  (s/on-closed
-    local
-    (fn [& args]
-      (log/info "local client closed connection")
-      @(s/put! remote (wu/ws-enc-remote-cmd "close!"))
-      (s/close! remote)))
-
-  (s/on-closed
-    remote
-    (fn [& args]
-      (log/info "remote closed connection")
-      (s/close! local))))
-
-(defn proxy-handler [local ws config]
-  (log/info "setting up proxy between local socket and remote websocket")
-  (add-close-handlers local ws)
-  (let [push-ready (async/chan)]
-    (wu/mime-consumer!
-      ws
-      (partial wu/handle-server-op push-ready)
-      (fn [byte-chunk]
-        (assert (bytes? byte-chunk))
-        @(s/put! local byte-chunk)))
-    (async/<!! push-ready)
-    @(s/put! ws (wu/ws-map config))
-    (s/consume
-      (fn [byt]
-        (assert (bytes? byt))
-        (doseq [chunk (partition-all 1024 (seq byt))]
-          (assert (true? @(s/put! ws (wu/ws-enc (byte-array (vec chunk))))))
-          (async/<!! push-ready)))
-      local)))
-
 (defn handler [{:keys [remote-host remote-port] :as opts} sock _info]
   (log/info "starting new connection ...")
   (if-let [websock (az-utils/get-websocket opts)]
     (do
-      (log/info "established, configuring ...")
-      (proxy-handler sock websock {:host    remote-host
-                                   :port    (str remote-port)
-                                   :logPort "12345"}))
+      (wu/redir-handler sock websock {:host    remote-host
+                                      :port    (str remote-port)
+                                      :logPort "12345"}))
     (do
       (log/error "could not get websocket, aborting!")
       (s/close! sock))))
